@@ -1,0 +1,167 @@
+---
+title: "week01"
+format: html
+---
+
+## Introduction
+```{r}
+pacman::p_load(tidyverse)
+
+exam_data <- read_csv("../data/Exam_data.csv")
+```
+
+### Comparison of R Graphics VS ggplot
+::: {.panel-tabset}
+
+## R Graphics
+```{r}
+hist(exam_data$MATHS, xlab="Math Score")
+title("Distribution of Math Scores")
+```
+
+## ggplot2
+```{r}
+# ggplot(data=df) will just display an empty canvas.
+# setting aes(x=MATHS) just sets the x-axis to the range of values in the MATHS column
+# using geom_histogram 
+ggplot(data=exam_data, aes(x = MATHS)) +
+  geom_histogram(bins=10,
+                 boundary=100,
+                 color="black",
+                 fill="grey") +
+  ggtitle("Distribution of Math Scores")
+```
+
+:::
+## Geometric Objects in ggplot2: geom
+
+### Bar chart with `geom_bar()`
+```{r}
+ggplot(data=exam_data,
+       aes(x=RACE)) +
+  geom_bar()
+```
+
+### Dot plot with `geom_dotplot()`
+Not be confused with scatterplots, a dot plot is essentially a histogram but in the style of stacked dots. 
+```{r}
+ggplot(data=exam_data, 
+       aes(x=MATHS)) +
+  geom_dotplot(dotsize=0.5)
+```
+
+Because the y-axis scale is misleading, we will have to turn off y-axis with the `scale_y_continuous()`
+```{r}
+ggplot(data=exam_data,
+       aes(x=MATHS)) +
+  geom_dotplot(binwidth=2.5,
+               dotsize=0.5) +
+  scale_y_continuous(NULL, breaks=NULL)
+```
+
+Question: When is a dot plot preferred over something like a histogram? Is counting the dots even feasible?
+
+### Histograms with `geom_histogram()`
+```{r}
+# default number of bins is 30
+ggplot(data=exam_data,
+       aes(x=MATHS)) +
+  geom_histogram()
+```
+
+In the `geom()`, we can use the arguments to modify the geometric object. 
+```{r}
+ggplot(data=exam_data,
+       aes(x=MATHS)) +
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue")
+```
+
+Similar to `hue` in `seaborn`, we can colour the histogram by sub-groups using the `fill` argument in `aesthetic()`. We can also play around with the other arguments like `alpha` and `color`. 
+
+::: {.panel-tabset}
+## `fill`
+```{r}
+ggplot(data=exam_data,
+       aes(x=MATHS,
+           fill=GENDER)) +
+  geom_histogram(bins=20,
+                 color="grey30")
+```
+
+## `alpha`
+```{r}
+# Can't use it on continuous variables either even though there's the warning.
+# It's very difficult to see.
+ggplot(data=exam_data,
+       aes(x=MATHS,
+           alpha=CLASS)) +
+  geom_histogram(bins=20,
+                 color="grey30")
+```
+
+## `color`
+The `color` argument in the `geom_histogram()` needs to be removed as it will override the previous `aes()`
+```{r}
+ggplot(data=exam_data,
+       aes(x=MATHS,
+           color=GENDER)) +
+  geom_histogram(bins=20,
+                 alpha=0.3)
+```
+:::
+
+### Kernel Density Estimate with `geom_density()`
+```{r}
+ggplot(data=exam_data,
+       aes(x=MATHS)) +
+  geom_density()
+
+ggplot(data=exam_data,
+       aes(x=MATHS,
+           color=GENDER)) +
+  geom_density()
+```
+
+### Boxplot with `geom_boxplot()`
+```{r}
+ggplot(data=exam_data,
+       aes(y=MATHS,
+           x=GENDER)) +
+  geom_boxplot()
+
+# notches are used to see if medians of the distributions differ
+ggplot(data=exam_data,
+       aes(y=MATHS,
+           x=GENDER)) +
+  geom_boxplot(notches=TRUE) # TRUE must be all caps
+```
+
+### Violin plot with `geom_violin()`
+This is for comparing multiple data distributions side by side. With density curves, as the lines may overlap with one another, it is more challenging to compare the different distributions.
+```{r}
+ggplot(data=exam_data, 
+       aes(y=MATHS, 
+           x= GENDER)) +
+  geom_violin()
+```
+
+### Scatterplot with `geom_point()`
+```{r}
+ggplot(data=exam_data,
+       aes(x=MATHS,
+           y=ENGLISH)) +
+  geom_point()
+```
+
+### Combining *geom* objects
+```{r}
+ggplot(data=exam_data,
+       aes(y=MATHS,
+           x=GENDER)) +
+  geom_boxplot() +
+  geom_point(position="jitter",
+             size=0.5)
+```
+
