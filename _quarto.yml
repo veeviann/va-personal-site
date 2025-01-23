@@ -19,6 +19,8 @@ website:
     contents: 
       - href: hands-on/week01.qmd
         text: Week 01
+      - href: hands-on/week02.qmd
+        text: Week 02
       # navigation items
 format:
   html:

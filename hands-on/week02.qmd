@@ -1,0 +1,411 @@
+---
+title: "Week 02 - Beyond ggplot2 Fundamentals"
+format: html
+sidebar: false
+date-modified: last-modified
+---
+
+## 2.1 Introduction
+The following content is created by following the tutorial on [this chapter](https://r4va.netlify.app/chap02).
+
+```{r}
+#| warning: false
+pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)
+
+exam_data <- read_csv("../data/Exam_data.csv")
+```
+
+## 2.2 Beyond ggplot2 Annotation: ggrepel
+
+The ggrepel package extends ggplot2 by providing geoms (`geom_text_repel()` and `geom_label_repel()`) that prevent overlapping text labels. These labels automatically adjust their positions to avoid overlapping with one another, data points, and the edges of the plotting area. The purpose of this is to improve readability by avoiding overlapping labels compared to `geom_label()` or `geom_text()`.
+
+In the example below, we will replace `geom_label()` with `geom_label_repel()`.
+
+::: {.panel-tabset}
+
+## Default
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS, 
+           y = ENGLISH)) +
+  geom_point() +
+  geom_smooth(method = lm, 
+              linewidth = 0.5) +  
+  geom_label(aes(label = ID), 
+             hjust = .5, 
+             vjust = -.5) +
+  coord_cartesian(xlim = c(0,100),
+                  ylim = c(0,100)) +
+  ggtitle("English scores versus Maths scores for Primary 3")
+```
+
+## With ggrepel
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS, 
+           y = ENGLISH)) +
+  geom_point() +
+  geom_smooth(method = lm, 
+              linewidth = 0.5) +  
+  geom_label_repel(aes(label = ID), 
+                   fontface = "bold") +
+  coord_cartesian(xlim = c(0,100),
+                  ylim = c(0,100)) +
+  ggtitle("English scores versus Maths scores for Primary 3")
+```
+
+## With ggrepel (overlaps allowed)
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS, 
+           y = ENGLISH)) +
+  geom_point() +
+  geom_smooth(method = lm, 
+              linewidth = 0.5) +  
+  geom_label_repel(aes(label = ID), 
+                   fontface = "bold",
+                   max.overlaps = nrow(exam_data)*0.2) +
+  coord_cartesian(xlim = c(0,100),
+                  ylim = c(0,100)) +
+  ggtitle("English scores versus Maths scores for Primary 3")
+```
+:::
+
+This example highlights a limitation: when too many labels overlap, the plot becomes cluttered and less informative. In the third tab, even annotating just 20% of the points results in an overcrowded graph. If identifying specific points is important, consider annotating only those points or subsetting the dataset to focus on key data. Alternatively, using hover text can be a more effective way to display identities without overwhelming the plot.
+
+## 2.3 Beyond ggplot2 themes
+
+The examples below showcases the eight built-in themes in ggplot2. 
+
+::: {.panel-tabset}
+## `theme_gray()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_gray() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_bw()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_bw() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_classic()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_classic() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_dark()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_dark() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_light()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_light() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_linedraw()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_linedraw() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_minimal()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_minimal() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_void()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100) +
+  theme_void() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+:::
+
+::: {.callout-note}
+The geom itself does not change with respect to the theme. Therefore, attributes like `color` and `fill` within the geom must be explicitly defined and are not automatically adjusted by the theme.
+:::
+
+### 2.3.1 ggtheme package
+
+::: {.panel-tabset}
+## `theme_economist()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100,
+                 color = "grey25", 
+                 fill = "grey90") +
+  theme_economist() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_wsj()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100,
+                 color = "grey25", 
+                 fill = "grey90") +
+  theme_wsj() +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## `theme_solarized()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100,
+                 color = "grey25", 
+                 fill = "grey90") +
+  theme_solarized() +
+  ggtitle("Distribution of Maths scores") 
+```
+:::
+
+### 2.3.2 hrbrthemes package
+
+The link from the page did not work so I refered to [this page](https://r-graph-gallery.com/package/hrbrthemes.html) instead.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100,
+                 color = "grey25", 
+                 fill = "grey90") +
+  scale_color_ipsum() +
+  theme_ipsum(axis_title_size = 18,
+              base_size = 15,
+              grid = "Y") +
+  ggtitle("Distribution of Maths scores") 
+```
+
+## 2.4 Composing Graphs using patchwork
+
+Sometimes we need more than one graph to create a visually compelling narrative. In this section, we will be exploring different ggplot2 extensions to provide functions to compose figure with multiple graphs. The three graphs are as shown below.
+
+::: {.panel-tabset}
+## Math Histogram
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+p1 <- ggplot(data = exam_data, 
+       aes(x = MATHS)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100,
+                 color = "grey25", 
+                 fill = "grey90") +
+  coord_cartesian(xlim=c(0,100)) +
+  ggtitle("Distribution of Maths scores") 
+
+p1
+```
+
+## English Histogram
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+p2 <- ggplot(data = exam_data, 
+       aes(x = ENGLISH)) +
+  geom_histogram(bins = 20, 
+                 boundary = 100,
+                 color = "grey25", 
+                 fill = "grey90") +
+  coord_cartesian(xlim = c(0,100)) +
+  ggtitle("Distribution of English scores") 
+
+p2
+```
+
+## Math vs English Scatterplot
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+p3 <- ggplot(data = exam_data, 
+             aes(x = MATHS, y = ENGLISH)) +
+  geom_point() +
+  geom_smooth(method = lm,
+              size = 0.5) + 
+  coord_cartesian(xlim = c(0, 100),
+                  ylim = c(0, 100)) +
+  ggtitle("English scores versus Maths scores for Primary 3")
+
+p3
+```
+:::
+
+### 2.4.1 patchwork operators
+- Two-Column Layout using the Plus Sign +.
+- Parenthesis () to create a subplot group.
+- Two-Row Layout using the Division Sign /
+- “|” operator to place the plots beside each other
+
+::: {.panel-tabset}
+## Two-plots
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+p1 + p2
+```
+
+## Three-plots
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+(p1 / p2) | p3
+```
+:::
+
+### 2.4.2 patchwork operators & extra functionalities
+
+::: {.panel-tabset}
+## With tags
+Auto-tagging capabilities can be done by using `plot_annotation()` (eg. numbering the figures automatically).
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+((p1 / p2) | p3) + 
+  plot_annotation(tag_levels = 'I')
+```
+
+## Layering
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+p3 + inset_element(p2, 
+                   left = 0.02, 
+                   bottom = 0.7, 
+                   right = 0.5, 
+                   top = 1)
+```
+
+## Themed
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+patchwork <- (p1 / p2) | p3
+patchwork & theme_economist() +
+  theme(plot.title = element_text(size = 12, face = "bold")) # Needs this or the font is too large for the plot
+```
+:::
+
+## 2.5 EXTRAS
+TODO
