@@ -2,9 +2,11 @@
 title: "Week 01 - A Layered Grammar of Graphics: `ggplot2` methods"
 format: html
 sidebar: false
+date-modified: last-modified
 ---
 
-## 1 Introduction
+## 1.1 Introduction
+
 The following content is created by following the tutorial on [this chapter](https://r4va.netlify.app/chap01).
 
 ```{r}
@@ -13,15 +15,17 @@ pacman::p_load(tidyverse)
 exam_data <- read_csv("../data/Exam_data.csv")
 ```
 
-### 1.1 Comparison of R Graphics VS ggplot
-::: {.panel-tabset}
+### 1.1.1 Comparison of R Graphics VS ggplot
 
+::: panel-tabset
 ## R Graphics
+
 ```{r}
 hist(exam_data$MATHS, xlab="Math Score", main="Distribution of Math Scores")
 ```
 
 ## ggplot2
+
 ```{r}
 # ggplot(data=df) will just display an empty canvas.
 # setting aes(x=MATHS) just sets the x-axis to the range of values in the MATHS column
@@ -33,19 +37,22 @@ ggplot(data=exam_data, aes(x = MATHS)) +
                  fill="grey") +
   ggtitle("Distribution of Math Scores")
 ```
-
 :::
-## 2 Geometric Objects in ggplot2: geom
 
-### 2.1 Bar chart with `geom_bar()`
+## 1.2 Geometric Objects in ggplot2: geom
+
+### 1.2.1 Bar chart with `geom_bar()`
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=RACE)) +
   geom_bar()
 ```
 
-### 2.2 Dot plot with `geom_dotplot()`
-Not be confused with scatterplots, a dot plot is essentially a histogram but in the style of stacked dots. 
+### 1.2.2 Dot plot with `geom_dotplot()`
+
+Not be confused with scatterplots, a dot plot is essentially a histogram but in the style of stacked dots.
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=MATHS)) +
@@ -53,6 +60,7 @@ ggplot(data=exam_data,
 ```
 
 Because the y-axis scale is misleading, we will have to turn off y-axis with the `scale_y_continuous()`
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=MATHS)) +
@@ -63,7 +71,8 @@ ggplot(data=exam_data,
 
 Question: When is a dot plot preferred over something like a histogram? Is counting the dots even feasible?
 
-### 2.3 Histograms with `geom_histogram()`
+### 1.2.3 Histograms with `geom_histogram()`
+
 ```{r}
 # default number of bins is 30
 ggplot(data=exam_data,
@@ -71,7 +80,8 @@ ggplot(data=exam_data,
   geom_histogram()
 ```
 
-In the `geom()`, we can use the arguments to modify the geometric object. 
+In the `geom()`, we can use the arguments to modify the geometric object.
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=MATHS)) +
@@ -80,10 +90,11 @@ ggplot(data=exam_data,
                  fill="light blue")
 ```
 
-Similar to `hue` in `seaborn`, we can colour the histogram by sub-groups using the `fill` argument in `aesthetic()`. We can also play around with the other arguments like `alpha` and `color`. 
+Similar to `hue` in `seaborn`, we can colour the histogram by sub-groups using the `fill` argument in `aesthetic()`. We can also play around with the other arguments like `alpha` and `color`.
 
-::: {.panel-tabset}
+::: panel-tabset
 ## `fill`
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=MATHS,
@@ -93,6 +104,7 @@ ggplot(data=exam_data,
 ```
 
 ## `alpha`
+
 ```{r}
 # Can't use it on continuous variables either even though there's the warning.
 # It's very difficult to see.
@@ -104,7 +116,9 @@ ggplot(data=exam_data,
 ```
 
 ## `color`
+
 The `color` argument in the `geom_histogram()` needs to be removed as it will override the previous `aes()`
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=MATHS,
@@ -114,7 +128,8 @@ ggplot(data=exam_data,
 ```
 :::
 
-### 2.4 Kernel Density Estimate with `geom_density()`
+### 1.2.4 Kernel Density Estimate with `geom_density()`
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=MATHS)) +
@@ -126,7 +141,8 @@ ggplot(data=exam_data,
   geom_density()
 ```
 
-### 2.5 Boxplot with `geom_boxplot()`
+### 1.2.5 Boxplot with `geom_boxplot()`
+
 ```{r}
 ggplot(data=exam_data,
        aes(y=MATHS,
@@ -140,8 +156,10 @@ ggplot(data=exam_data,
   geom_boxplot(notches=TRUE) # TRUE must be all caps
 ```
 
-### 2.6 Violin plot with `geom_violin()`
+### 1.2.6 Violin plot with `geom_violin()`
+
 This is for comparing multiple data distributions side by side. With density curves, as the lines may overlap with one another, it is more challenging to compare the different distributions.
+
 ```{r}
 ggplot(data=exam_data, 
        aes(y=MATHS, 
@@ -149,7 +167,8 @@ ggplot(data=exam_data,
   geom_violin()
 ```
 
-### 2.7 Scatterplot with `geom_point()`
+### 1.2.7 Scatterplot with `geom_point()`
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=MATHS,
@@ -157,7 +176,8 @@ ggplot(data=exam_data,
   geom_point()
 ```
 
-### 2.8 Combining *geom* objects
+### 1.2.8 Combining *geom* objects
+
 ```{r}
 ggplot(data=exam_data,
        aes(y=MATHS,
@@ -167,9 +187,12 @@ ggplot(data=exam_data,
              size=0.5)
 ```
 
-## 3 Statistics functions in `ggplot2`: stat
-### 3.1 Using the `stat_summary()` method
+## 1.3 Statistics functions in `ggplot2`: stat
+
+### 1.3.1 Using the `stat_summary()` method
+
 The box plot above doesn't indicate the position of the means. By working with the `stat_summary()` function, we can indicate the mean values on the plot.
+
 ```{r}
 ggplot(data=exam_data,
        aes(y=MATHS,
@@ -181,8 +204,10 @@ ggplot(data=exam_data,
                 size=4)
 ```
 
-### 3.2 Using `geom()` to update stat
+### 1.3.2 Using `geom()` to update stat
+
 Overriding the default stat, we can add the mean values as well.
+
 ```{r}
 ggplot(data=exam_data,
        aes(y=MATHS,
@@ -194,10 +219,11 @@ ggplot(data=exam_data,
              size=4)
 ```
 
-### 3.3 Using `geom_smooth()` to add best fit curve
+### 1.3.3 Using `geom_smooth()` to add best fit curve
 
-::: {.panel-tabset}
+::: panel-tabset
 ## loess
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=MATHS, 
@@ -207,6 +233,7 @@ ggplot(data=exam_data,
 ```
 
 ## lm
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=MATHS, 
@@ -217,10 +244,12 @@ ggplot(data=exam_data,
 ```
 :::
 
-## 4 Facets
+## 1.4 Facets
+
 Also known as trellis plot. In mpl it's subplots.
 
-### 4.1 Wrapping 1d sequence of panels into 2d with `facet_wrap()`
+### 1.4.1 Wrapping 1d sequence of panels into 2d with `facet_wrap()`
+
 ```{r}
 ggplot(data=exam_data,
        aes(x=MATHS)) +
@@ -228,7 +257,8 @@ ggplot(data=exam_data,
     facet_wrap(~ CLASS)
 ```
 
-### 4.2 Creating matrix of panels with `facet_grid()`
+### 1.4.2 Creating matrix of panels with `facet_grid()`
+
 ```{r}
 # This should be similar to subplots
 ggplot(data=exam_data,
@@ -237,8 +267,10 @@ ggplot(data=exam_data,
     facet_grid(~ CLASS)
 ```
 
-## 5 Coordinates
-### 5.1 Flipping the coordinates with `coord_flip()`
+## 1.5 Coordinates
+
+### 1.5.1 Flipping the coordinates with `coord_flip()`
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -246,7 +278,8 @@ ggplot(data=exam_data,
   coord_flip()
 ```
 
-### 5.2 Changing the y- and x-axis range with `coord_cartesian()`
+### 1.5.2 Changing the y- and x-axis range with `coord_cartesian()`
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=MATHS, 
@@ -258,14 +291,15 @@ ggplot(data=exam_data,
                   ylim=c(0,100))
 ```
 
-## 6 Themes
-- [List](https://ggplot2.tidyverse.org/reference/ggtheme.html) of built-in themes
+## 1.6 Themes
 
-### 6.1 Examples of different themes
+-   [List](https://ggplot2.tidyverse.org/reference/ggtheme.html) of built-in themes
 
-::: {.panel-tabset}
+### 1.6.1 Examples of different themes
 
+::: panel-tabset
 ## theme_gray()
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -275,6 +309,7 @@ ggplot(data=exam_data,
 ```
 
 ## theme_classic()
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -284,6 +319,7 @@ ggplot(data=exam_data,
 ```
 
 ## theme_minimal()
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -291,5 +327,7 @@ ggplot(data=exam_data,
   coord_flip() +
   theme_minimal()
 ```
-
 :::
+
+## 1.7 EXTRAS
+TODO
