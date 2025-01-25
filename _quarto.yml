@@ -22,13 +22,14 @@ website:
       - href: hands-on/week02.qmd
         text: Week 02
       # navigation items
+      
 format:
   html:
     theme:
-      - cosmo
-      - brand
+      - yeti
     css: styles.css
     toc: true
+    comments:
+      hypothesis: true
 
 editor: visual
-
