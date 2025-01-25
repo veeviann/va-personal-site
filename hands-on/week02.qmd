@@ -6,6 +6,7 @@ date-modified: last-modified
 ---
 
 ## 2.1 Introduction
+
 The following content is created by following the tutorial on [this chapter](https://r4va.netlify.app/chap02).
 
 ```{r}
@@ -21,9 +22,9 @@ The ggrepel package extends ggplot2 by providing geoms (`geom_text_repel()` and 
 
 In the example below, we will replace `geom_label()` with `geom_label_repel()`.
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Default
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -44,6 +45,7 @@ ggplot(data = exam_data,
 ```
 
 ## With ggrepel
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -63,6 +65,7 @@ ggplot(data = exam_data,
 ```
 
 ## With ggrepel (overlaps allowed)
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -87,10 +90,11 @@ This example highlights a limitation: when too many labels overlap, the plot bec
 
 ## 2.3 Beyond ggplot2 themes
 
-The examples below showcases the eight built-in themes in ggplot2. 
+The examples below showcases the eight built-in themes in ggplot2.
 
-::: {.panel-tabset}
+::: panel-tabset
 ## `theme_gray()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -105,6 +109,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_bw()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -119,6 +124,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_classic()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -133,6 +139,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_dark()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -147,6 +154,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_light()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -161,6 +169,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_linedraw()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -175,6 +184,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_minimal()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -189,6 +199,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_void()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -201,17 +212,17 @@ ggplot(data = exam_data,
   theme_void() +
   ggtitle("Distribution of Maths scores") 
 ```
-
 :::
 
-::: {.callout-note}
+::: callout-note
 The geom itself does not change with respect to the theme. Therefore, attributes like `color` and `fill` within the geom must be explicitly defined and are not automatically adjusted by the theme.
 :::
 
 ### 2.3.1 ggtheme package
 
-::: {.panel-tabset}
+::: panel-tabset
 ## `theme_economist()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -228,6 +239,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_wsj()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -244,6 +256,7 @@ ggplot(data = exam_data,
 ```
 
 ## `theme_solarized()`
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -286,8 +299,9 @@ ggplot(data = exam_data,
 
 Sometimes we need more than one graph to create a visually compelling narrative. In this section, we will be exploring different ggplot2 extensions to provide functions to compose figure with multiple graphs. The three graphs are as shown below.
 
-::: {.panel-tabset}
+::: panel-tabset
 ## Math Histogram
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -306,6 +320,7 @@ p1
 ```
 
 ## English Histogram
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -324,6 +339,7 @@ p2
 ```
 
 ## Math vs English Scatterplot
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -343,13 +359,15 @@ p3
 :::
 
 ### 2.4.1 patchwork operators
-- Two-Column Layout using the Plus Sign +.
-- Parenthesis () to create a subplot group.
-- Two-Row Layout using the Division Sign /
-- “|” operator to place the plots beside each other
 
-::: {.panel-tabset}
+-   Two-Column Layout using the Plus Sign +.
+-   Parenthesis () to create a subplot group.
+-   Two-Row Layout using the Division Sign /
+-   “\|” operator to place the plots beside each other
+
+::: panel-tabset
 ## Two-plots
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -359,6 +377,7 @@ p1 + p2
 ```
 
 ## Three-plots
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -370,9 +389,11 @@ p1 + p2
 
 ### 2.4.2 patchwork operators & extra functionalities
 
-::: {.panel-tabset}
+::: panel-tabset
 ## With tags
+
 Auto-tagging capabilities can be done by using `plot_annotation()` (eg. numbering the figures automatically).
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -383,6 +404,7 @@ Auto-tagging capabilities can be done by using `plot_annotation()` (eg. numberin
 ```
 
 ## Layering
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -396,6 +418,7 @@ p3 + inset_element(p2,
 ```
 
 ## Themed
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -408,4 +431,5 @@ patchwork & theme_economist() +
 :::
 
 ## 2.5 EXTRAS
+
 TODO

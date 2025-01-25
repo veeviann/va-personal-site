@@ -329,5 +329,42 @@ ggplot(data=exam_data,
 ```
 :::
 
-## 1.7 EXTRAS
-TODO
+## 1.7 Additional Plots
+This space is for more exploration regarding this week's extra topics. It may be done later when I have time to revise. 
+
+### 1.7.1 Age-sex Pyramid
+Data Retrieved From [Singstat](https://tablebuilder.singstat.gov.sg/table/TS/M810011#!)
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+# Referenced from https://www.geeksforgeeks.org/how-to-create-a-population-pyramid-in-r/
+pop_data <- read_csv("../data/sg_residents_jun2024.csv")
+
+# This is to ensure that the age levels are sorted correctly
+age_levels <- pop_data %>%
+  distinct(age) %>%
+  pull(age) %>%
+  str_replace(" Years", "")
+  
+pop_data <- pop_data %>%
+  mutate(age = factor(str_replace(age, " Years", ""), levels = age_levels))
+
+# Plotting the age-sex pyramid
+pop_data %>%mutate( 
+    population = ifelse(gender=="M", population*(-1e-3), 
+                        population*1e-3))%>% 
+    ggplot(aes(x = age, 
+               y = population, 
+               fill = gender)) +  
+    geom_bar(stat = "identity") + 
+    coord_flip() + 
+    scale_y_continuous(limits = c(-200,200),  
+                       breaks = seq(-200, 200, by = 50))+
+   labs(title = "Singapore Residents", x = "Age Range",  
+        y = "Population (in thousands)") +
+  theme_light() +
+  theme(axis.ticks.y=element_blank())
+```
