@@ -368,3 +368,52 @@ pop_data %>%mutate(
   theme_light() +
   theme(axis.ticks.y=element_blank())
 ```
+
+### 1.7.2 Pareto Chart
+Data Retrieved From [Singstat](https://tablebuilder.singstat.gov.sg/table/TS/M212981)
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+pacman::p_load(scales)
+
+exp_data <- read_csv("../data/avg_monthly_expenditure2023.csv")
+
+pareto_data <- exp_data %>%
+  mutate (
+    category_wrapped = str_wrap(category, width = 8)
+  ) %>% 
+  arrange(desc(avg_spend)) %>%  # Sort by avg_spend in descending order
+  mutate(
+    category_wrapped = factor(category_wrapped, levels = category_wrapped),  # Fix category order
+    cum_percent = cumsum(avg_spend) / sum(avg_spend) * 100)  # Calculate cumulative percentage
+
+
+# Create the Pareto chart
+ggplot(pareto_data, aes(x = category_wrapped)) +
+  geom_bar(aes(y = avg_spend), stat = "identity", fill = "steelblue") +
+  geom_line(aes(y = cum_percent * max(avg_spend) / 100, 
+                group = 1), color = "red", 
+            size = 1) +
+  geom_point(aes(y = cum_percent * max(avg_spend) / 100), 
+             color = "red", size = 2) +
+  scale_y_continuous(
+    name = "Average Monthly HouseHold Expenditure (SGD)", 
+    sec.axis = sec_axis(~ . * 100 / max(pareto_data$avg_spend),
+                        breaks = seq(0, 100, by = 20),
+                        labels = percent_format(scale = 1))) +
+  labs(
+    title = "Average Monthly Household Expenditure by Goods and Services Type (2023)",
+    x = "Type of Goods and Services",
+    y = "Average Monthly HouseHold Expenditure (SGD)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 6)) 
+```
+
+
+This Pareto chart shows the average monthly household expenditure in Singapore for 2023, offering insights into spending priorities. Key areas like "Housing and Utilities," "Food and Food Serving Services," and "Transport" form the bulk of household expenses. However, it’s worth noting that the data is self-reported, as outlined in the Household Expenditure Survey 2022/23 ([SingStat](https://www.singstat.gov.sg/hes/hes-2223)). Additionally, this analysis isn’t normalized by household size or segmented by income levels, which could mask inequalities across different demographics. 
+
+For a deeper dive, the full report and related publications are available on SingStat’s website ([here](https://www.singstat.gov.sg/publications/households/household-expenditure-survey)). This serves as a starting point for exploring how households allocate resources, but there’s room to uncover more patterns with richer, disaggregated data.
