@@ -483,6 +483,202 @@ crosstalk::bscols(gg,
                   widths = 5)  
 ```
 
+## 3.5 Extra: Scatterplot with marginal distribution
+The [visual analytics method of the week](https://isss608-ay2024-25jan.netlify.app/outline/lesson03_outline#visual-analytics-methods-of-the-week) is scatterplot with marginal distribution, we will be exploring methods to create this plot. The following code blocks has content that was generated with the help of LLMs. 
+
+### 3.5.1 Using `patchwork` to create the plot
+
+As we have learnt `patchwork` [here](week02.html#composing-graphs-using-patchwork), I will be using patchwork to combine the plots together. The method that will be introduced here will be `plot_spacer()`, which will creates an empty transparent patch that can be added to push your other plots apart. [Reference](https://patchwork.data-imaginist.com/reference/plot_spacer.html). 
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+# Scatter plot
+scatter_plot <- ggplot(data = exam_data, 
+                       aes(x = MATHS, y = ENGLISH)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Scatter Plot with Marginal Density Plots",
+       x = "Maths Score",
+       y = "English Score")
+
+# Marginal density plot for x-axis (MATHS)
+density_x <- ggplot(data = exam_data, 
+                    aes(x = MATHS)) +
+  geom_density(fill = "gray", alpha = 0.6) +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+# Marginal density plot for y-axis (ENGLISH)
+density_y <- ggplot(data = exam_data, 
+                    aes(x = ENGLISH)) +
+  geom_density(fill = "gray", alpha = 0.6) +
+  coord_flip() +  # Flip to make it vertical
+  theme_minimal() +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+# Combine plots using patchwork
+combined_plot <- density_x + 
+  plot_spacer() +  # Empty space
+  scatter_plot + 
+  density_y +
+  plot_layout(ncol = 2, widths = c(4, 1), heights = c(1, 4))
+
+# Display the combined plot
+combined_plot
+```
+
+### 3.5.2 Using `ggExtra` to create the plot
+
+There's another library that helps to add marginal distributions to the X and Y axis of a `ggplot` scatterplot. As you've seen, using patchwork requires a lengthy code. With the `ggMarginal()` wrapper, we will be able to shorten the code and still get a similar plot. [Reference](https://r-graph-gallery.com/277-marginal-histogram-for-ggplot2.html)
+
+```{r}
+#| warning: false
+
+pacman::p_load(ggExtra)
+```
+
+::: panel-tabset
+
+## Density
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+
+# Step 1: Create scatter plot
+scatter_plot <- ggplot(data = exam_data, 
+                       aes(x = MATHS, y = ENGLISH)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Scatter Plot with Marginal Density Plots",
+       x = "Maths Score",
+       y = "English Score")
+
+# Step 2: Add marginal density plots
+ggMarginal(scatter_plot,
+           type = "density",
+           fill = "gray",
+           alpha = 0.6,
+           color = "black")
+```
+
+## Histogram
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+
+# Step 1: Create scatter plot
+scatter_plot <- ggplot(data = exam_data, 
+                       aes(x = MATHS, y = ENGLISH)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Scatter Plot with Marginal Density Plots",
+       x = "Maths Score",
+       y = "English Score")
+
+# Step 2: Add marginal density plots
+ggMarginal(scatter_plot, 
+           type = "histogram",
+           color = "black")
+```
+
+## Boxplot
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+
+# Step 1: Create scatter plot
+scatter_plot <- ggplot(data = exam_data, 
+                       aes(x = MATHS, y = ENGLISH)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Scatter Plot with Marginal Density Plots",
+       x = "Maths Score",
+       y = "English Score")
+
+# Step 2: Add marginal density plots
+ggMarginal(scatter_plot, 
+           type ="boxplot", 
+           color = "black")
+```
+
+:::
+
+### 3.5.3 Creating an interactive scatter plot with marginal distribution
+
+I tried to combine the `plotly` with `ggExtra` but because `ggMarginal()` returns an object of class "ggExtraPlot", it is not directly compatible with `ggplotly()`. We will use the `patchwork` approach instead.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| warning: false
+
+# Scatter plot
+scatter_plot <- ggplot(data = exam_data, 
+                       aes(x = MATHS, 
+                           y = ENGLISH,
+                           text = paste("Student", ID,
+                                        "<br>Maths: ", MATHS, 
+                                        "<br>English: ", ENGLISH))) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Scatter Plot with Marginal Density Plots",
+       x = "Maths Score",
+       y = "English Score")
+
+# Marginal density plot for x-axis (MATHS)
+density_x <- ggplot(data = exam_data, 
+                    aes(x = MATHS)) +
+  geom_density(fill = "gray", alpha = 0.6) +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+# Marginal density plot for y-axis (ENGLISH)
+density_y <- ggplot(data = exam_data, 
+                    aes(x = ENGLISH)) +
+  geom_density(fill = "gray", alpha = 0.6) +
+  coord_flip() +  # Flip to make it vertical
+  theme_minimal() +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+interactive_scatter <- ggplotly(scatter_plot, tooltip = "text")
+
+# Convert marginal plots to plotly
+interactive_x_density <- ggplotly(density_x) %>% hide_legend() 
+interactive_y_density <- ggplotly(density_y) %>% hide_legend()
+
+# Step 3: Arrange all plots together using subplot
+final_plot <- subplot(
+  interactive_x_density, 
+  plot_spacer(),
+  interactive_scatter, 
+  interactive_y_density,
+  nrows = 2, heights = c(0.2, 0.8), widths = c(0.8, 0.2),
+  shareX = TRUE, shareY = TRUE
+)
+
+final_plot
+```
+
 # 4 Programming Animated Statistical Graphics with R
 
 ## 4.1 Introduction
@@ -644,4 +840,5 @@ bp <- globalPop %>%
   layout(showlegend = FALSE)
 bp
 ```
+
 
