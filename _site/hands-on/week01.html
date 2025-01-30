@@ -72,7 +72,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-fabc52e4b0d2b3105bd63a1e0c04afef.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-1cc56b66eba605203cf9616d8c55c428.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -100,6 +100,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<script async="" src="https://hypothes.is/embed.js"></script>
+<script>
+  window.document.addEventListener("DOMContentLoaded", function (_event) {
+    document.body.classList.add('hypothesis-enabled');
+  });
+</script>
 
 
 <link rel="stylesheet" href="../styles.css">
@@ -142,6 +148,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li>
     <a class="dropdown-item" href="../hands-on/week02.html">
  <span class="dropdown-text">Week 02</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../hands-on/week03.html">
+ <span class="dropdown-text">Week 03</span></a>
   </li>  
     </ul>
   </li>
@@ -196,7 +206,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#examples-of-different-themes" id="toc-examples-of-different-themes" class="nav-link" data-scroll-target="#examples-of-different-themes">1.6.1 Examples of different themes</a></li>
   </ul></li>
-  <li><a href="#extras" id="toc-extras" class="nav-link" data-scroll-target="#extras">1.7 EXTRAS</a></li>
+  <li><a href="#additional-plots" id="toc-additional-plots" class="nav-link" data-scroll-target="#additional-plots">1.7 Additional Plots</a>
+  <ul class="collapse">
+  <li><a href="#age-sex-pyramid" id="toc-age-sex-pyramid" class="nav-link" data-scroll-target="#age-sex-pyramid">1.7.1 Age-sex Pyramid</a></li>
+  <li><a href="#pareto-chart" id="toc-pareto-chart" class="nav-link" data-scroll-target="#pareto-chart">1.7.2 Pareto Chart</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -217,7 +231,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">January 23, 2025</p>
+      <p class="date-modified">January 26, 2025</p>
     </div>
   </div>
     
@@ -780,11 +794,106 @@ dbl (3): ENGLISH, MATHS, SCIENCE
 </div>
 </section>
 </section>
-<section id="extras" class="level2">
-<h2 class="anchored" data-anchor-id="extras">1.7 EXTRAS</h2>
-<p>TODO</p>
+<section id="additional-plots" class="level2">
+<h2 class="anchored" data-anchor-id="additional-plots">1.7 Additional Plots</h2>
+<p>This space is for more exploration regarding this week’s extra topics. It may be done later when I have time to revise.</p>
+<section id="age-sex-pyramid" class="level3">
+<h3 class="anchored" data-anchor-id="age-sex-pyramid">1.7.1 Age-sex Pyramid</h3>
+<p>Data Retrieved From <a href="https://tablebuilder.singstat.gov.sg/table/TS/M810011#!">Singstat</a></p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Referenced from https://www.geeksforgeeks.org/how-to-create-a-population-pyramid-in-r/</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>pop_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../data/sg_residents_jun2024.csv"</span>)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="co"># This is to ensure that the age levels are sorted correctly</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>age_levels <span class="ot">&lt;-</span> pop_data <span class="sc">%&gt;%</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(age) <span class="sc">%&gt;%</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(age) <span class="sc">%&gt;%</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">str_replace</span>(<span class="st">" Years"</span>, <span class="st">""</span>)</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>pop_data <span class="ot">&lt;-</span> pop_data <span class="sc">%&gt;%</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age =</span> <span class="fu">factor</span>(<span class="fu">str_replace</span>(age, <span class="st">" Years"</span>, <span class="st">""</span>), <span class="at">levels =</span> age_levels))</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Plotting the age-sex pyramid</span></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>pop_data <span class="sc">%&gt;%</span><span class="fu">mutate</span>( </span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">population =</span> <span class="fu">ifelse</span>(gender<span class="sc">==</span><span class="st">"M"</span>, population<span class="sc">*</span>(<span class="sc">-</span><span class="fl">1e-3</span>), </span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>                        population<span class="sc">*</span><span class="fl">1e-3</span>))<span class="sc">%&gt;%</span> </span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> age, </span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>               <span class="at">y =</span> population, </span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>               <span class="at">fill =</span> gender)) <span class="sc">+</span>  </span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>) <span class="sc">+</span> </span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_flip</span>() <span class="sc">+</span> </span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">200</span>,<span class="dv">200</span>),  </span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>                       <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">200</span>, <span class="dv">200</span>, <span class="at">by =</span> <span class="dv">50</span>))<span class="sc">+</span></span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>   <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Singapore Residents"</span>, <span class="at">x =</span> <span class="st">"Age Range"</span>,  </span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">y =</span> <span class="st">"Population (in thousands)"</span>) <span class="sc">+</span></span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.ticks.y=</span><span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="week01_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="pareto-chart" class="level3">
+<h3 class="anchored" data-anchor-id="pareto-chart">1.7.2 Pareto Chart</h3>
+<p>Data Retrieved From <a href="https://tablebuilder.singstat.gov.sg/table/TS/M212981">Singstat</a></p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(scales)</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>exp_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../data/avg_monthly_expenditure2023.csv"</span>)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>pareto_data <span class="ot">&lt;-</span> exp_data <span class="sc">%&gt;%</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span> (</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">category_wrapped =</span> <span class="fu">str_wrap</span>(category, <span class="at">width =</span> <span class="dv">8</span>)</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> </span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(avg_spend)) <span class="sc">%&gt;%</span>  <span class="co"># Sort by avg_spend in descending order</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">category_wrapped =</span> <span class="fu">factor</span>(category_wrapped, <span class="at">levels =</span> category_wrapped),  <span class="co"># Fix category order</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">cum_percent =</span> <span class="fu">cumsum</span>(avg_spend) <span class="sc">/</span> <span class="fu">sum</span>(avg_spend) <span class="sc">*</span> <span class="dv">100</span>)  <span class="co"># Calculate cumulative percentage</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the Pareto chart</span></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pareto_data, <span class="fu">aes</span>(<span class="at">x =</span> category_wrapped)) <span class="sc">+</span></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="fu">aes</span>(<span class="at">y =</span> avg_spend), <span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> cum_percent <span class="sc">*</span> <span class="fu">max</span>(avg_spend) <span class="sc">/</span> <span class="dv">100</span>, </span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>                <span class="at">group =</span> <span class="dv">1</span>), <span class="at">color =</span> <span class="st">"red"</span>, </span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>            <span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y =</span> cum_percent <span class="sc">*</span> <span class="fu">max</span>(avg_spend) <span class="sc">/</span> <span class="dv">100</span>), </span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Average Monthly HouseHold Expenditure (SGD)"</span>, </span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">sec.axis =</span> <span class="fu">sec_axis</span>(<span class="sc">~</span> . <span class="sc">*</span> <span class="dv">100</span> <span class="sc">/</span> <span class="fu">max</span>(pareto_data<span class="sc">$</span>avg_spend),</span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>                        <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">100</span>, <span class="at">by =</span> <span class="dv">20</span>),</span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">percent_format</span>(<span class="at">scale =</span> <span class="dv">1</span>))) <span class="sc">+</span></span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Average Monthly Household Expenditure by Goods and Services Type (2023)"</span>,</span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Type of Goods and Services"</span>,</span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Average Monthly HouseHold Expenditure (SGD)"</span></span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">6</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="week01_files/figure-html/unnamed-chunk-29-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This Pareto chart shows the average monthly household expenditure in Singapore for 2023, offering insights into spending priorities. Key areas like “Housing and Utilities,” “Food and Food Serving Services,” and “Transport” form the bulk of household expenses. However, it’s worth noting that the data is self-reported, as outlined in the Household Expenditure Survey 2022/23 (<a href="https://www.singstat.gov.sg/hes/hes-2223">SingStat</a>). Additionally, this analysis isn’t normalized by household size or segmented by income levels, which could mask inequalities across different demographics.</p>
+<p>For a deeper dive, the full report and related publications are available on SingStat’s website (<a href="https://www.singstat.gov.sg/publications/households/household-expenditure-survey">here</a>). This serves as a starting point for exploring how households allocate resources, but there’s room to uncover more patterns with richer, disaggregated data.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
@@ -878,7 +987,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp("https:\/\/veeviann-isss608\.netlify\.app");
+      var filterRegex = new RegExp('/' + window.location.host + '/');
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
