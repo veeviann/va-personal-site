@@ -1,8 +1,14 @@
 ---
 title: "Week 02 - Beyond ggplot2 Fundamentals"
 format: html
+author: Vivian Chew
 sidebar: false
 date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
 ---
 
 ## 2.1 Introduction

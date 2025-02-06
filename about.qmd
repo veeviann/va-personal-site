@@ -2,4 +2,4 @@
 title: "About"
 ---
 
-- Learning journey and deliverables of ISSS608 
+-   Learning journey and deliverables of ISSS608

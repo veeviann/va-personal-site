@@ -1,8 +1,14 @@
 ---
 title: "Week 01 - A Layered Grammar of Graphics: `ggplot2` methods"
 format: html
+author: Vivian Chew
 sidebar: false
 date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
 ---
 
 ## 1.1 Introduction
@@ -330,9 +336,11 @@ ggplot(data=exam_data,
 :::
 
 ## 1.7 Additional Plots
-This space is for more exploration regarding this week's extra topics. It may be done later when I have time to revise. 
+
+This space is for more exploration regarding this week's extra topics. It may be done later when I have time to revise.
 
 ### 1.7.1 Age-sex Pyramid
+
 Data Retrieved From [Singstat](https://tablebuilder.singstat.gov.sg/table/TS/M810011#!)
 
 ```{r}
@@ -370,6 +378,7 @@ pop_data %>%mutate(
 ```
 
 ### 1.7.2 Pareto Chart
+
 Data Retrieved From [Singstat](https://tablebuilder.singstat.gov.sg/table/TS/M212981)
 
 ```{r}
@@ -413,7 +422,6 @@ ggplot(pareto_data, aes(x = category_wrapped)) +
   theme(axis.text.x = element_text(size = 6)) 
 ```
 
-
-This Pareto chart shows the average monthly household expenditure in Singapore for 2023, offering insights into spending priorities. Key areas like "Housing and Utilities," "Food and Food Serving Services," and "Transport" form the bulk of household expenses. However, it’s worth noting that the data is self-reported, as outlined in the Household Expenditure Survey 2022/23 ([SingStat](https://www.singstat.gov.sg/hes/hes-2223)). Additionally, this analysis isn’t normalized by household size or segmented by income levels, which could mask inequalities across different demographics. 
+This Pareto chart shows the average monthly household expenditure in Singapore for 2023, offering insights into spending priorities. Key areas like "Housing and Utilities," "Food and Food Serving Services," and "Transport" form the bulk of household expenses. However, it’s worth noting that the data is self-reported, as outlined in the Household Expenditure Survey 2022/23 ([SingStat](https://www.singstat.gov.sg/hes/hes-2223)). Additionally, this analysis isn’t normalized by household size or segmented by income levels, which could mask inequalities across different demographics.
 
 For a deeper dive, the full report and related publications are available on SingStat’s website ([here](https://www.singstat.gov.sg/publications/households/household-expenditure-survey)). This serves as a starting point for exploring how households allocate resources, but there’s room to uncover more patterns with richer, disaggregated data.

@@ -3,3 +3,5 @@ title: "My Analytics Journey"
 ---
 
 Welcome to **ISSS608 Visual Analytics And Applications**.
+
+Changes

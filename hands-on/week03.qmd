@@ -1,8 +1,14 @@
 ---
 title: "Week 03 - Interactivity and Animation"
 format: html
+author: Vivian Chew
 sidebar: false
 date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
 ---
 
 # 3 Programming Interactive Data Visualisation with R
@@ -10,6 +16,7 @@ date-modified: last-modified
 ## 3.1 Introduction
 
 The following content is created by following the tutorial on [this chapter](https://r4va.netlify.app/chap03). These are the R packages that are needed for plotting interactive graphs.
+
 ```{r}
 pacman::p_load(ggiraph, plotly, 
                patchwork, DT, tidyverse)
@@ -28,7 +35,6 @@ exam_data <- read_csv("../data/Exam_data.csv")
 ### 3.2.1 Tooltip effect with *tooltip* aesthetic
 
 ::: panel-tabset
-
 ## Using tooltip
 
 The code chunk below will generate a dotplot that is interactive such that by hovering the mouse pointer on an data point of interest, the student’s ID will be displayed.
@@ -59,7 +65,7 @@ girafe(
 
 ## Customizing tooltip content
 
-Hover over the data point and the tooltip will display the ID and Class of the student, instead of just the student ID in the previous tab. 
+Hover over the data point and the tooltip will display the ID and Class of the student, instead of just the student ID in the previous tab.
 
 ```{r}
 #| code-fold: true
@@ -127,10 +133,10 @@ girafe(
   )
 )
 ```
-
 :::
 
 The code chunk below is an example of customizing the tooltip to show the 90% confidence interval.
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -165,7 +171,6 @@ girafe(ggobj = gg_point,
 ### 3.2.2 Hover effect with *data_id* aesthetic
 
 ::: panel-tabset
-
 ## Hover effect
 
 Elements associated with the data_id (i.e CLASS) will be highlighted upon mouse over.
@@ -193,7 +198,8 @@ girafe(
 
 ## Styling hover effect
 
-The css codes are used to change the highlighting effect. 
+The css codes are used to change the highlighting effect.
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -218,10 +224,10 @@ girafe(
   )                                        
 )            
 ```
-
 :::
 
 The code chunk below combines what we have learnt so far - the tooltip + hover effect.
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -276,11 +282,12 @@ girafe(
   height_svg = 6*0.618)   
 ```
 
-::: {.callout-warning}
+::: callout-warning
 Note that click actions must be a string column in the dataset containing valid javascript instructions.
 :::
 
 ### 3.2.4 Coordinated multiple views
+
 Coordinated multiple views methods has been implemented in the data visualisation below. When a data point of one of the dotplot is selected, the corresponding data point ID on the second data visualisation will be highlighted too. The steps will be annotated in the code chunk.
 
 ```{r}
@@ -326,11 +333,12 @@ girafe(code = print(p1 + p2),  # print is needed for the plot to display
 ```
 
 ### 3.2.5 Extra: Modification from previous exercise
-Last week, we learnt to use the `ggrepel` to prevent overlapping text labels [here](week02.html#beyond-ggplot2-annotation-ggrepel). However, the plot was still overwhelming. 
+
+Last week, we learnt to use the `ggrepel` to prevent overlapping text labels [here](week02.html#beyond-ggplot2-annotation-ggrepel). However, the plot was still overwhelming.
 
 ::: panel-tabset
-
 ## With ggrepel
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -348,6 +356,7 @@ ggplot(data = exam_data,
 ```
 
 ## Using hover instead
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -368,7 +377,6 @@ p <- ggplot(data = exam_data,
 girafe(                                  
   ggobj = p) 
 ```
-
 :::
 
 ## 3.3 Interactivity with `plotly`
@@ -376,10 +384,10 @@ girafe(
 ### 3.3.1 Creating an interactive scatterplot with `plot_ly()`
 
 ::: panel-tabset
-
 ## Default
 
 With just three lines of code, we can plot a basic interactive plot.
+
 ```{r}
 #| warning: false
 
@@ -389,6 +397,7 @@ plot_ly(data = exam_data,
 ```
 
 ## Using color
+
 ```{r}
 #| warning: false
 
@@ -397,7 +406,6 @@ plot_ly(data = exam_data,
         y = ~ENGLISH,
         color = ~RACE)
 ```
-
 :::
 
 ### 3.3.2 Creating an interactive scatterplot with `ggplotly()`
@@ -421,7 +429,8 @@ ggplotly(p)
 
 ### 3.3.3 Coordinated multiple views
 
-Expand on the code chunk to see the steps needed to create this plot. 
+Expand on the code chunk to see the steps needed to create this plot.
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -484,11 +493,12 @@ crosstalk::bscols(gg,
 ```
 
 ## 3.5 Extra: Scatterplot with marginal distribution
-The [visual analytics method of the week](https://isss608-ay2024-25jan.netlify.app/outline/lesson03_outline#visual-analytics-methods-of-the-week) is scatterplot with marginal distribution, we will be exploring methods to create this plot. The following code blocks has content that was generated with the help of LLMs. 
+
+The [visual analytics method of the week](https://isss608-ay2024-25jan.netlify.app/outline/lesson03_outline#visual-analytics-methods-of-the-week) is scatterplot with marginal distribution, we will be exploring methods to create this plot. The following code blocks has content that was generated with the help of LLMs.
 
 ### 3.5.1 Using `patchwork` to create the plot
 
-As we have learnt `patchwork` [here](week02.html#composing-graphs-using-patchwork), I will be using patchwork to combine the plots together. The method that will be introduced here will be `plot_spacer()`, which will creates an empty transparent patch that can be added to push your other plots apart. [Reference](https://patchwork.data-imaginist.com/reference/plot_spacer.html). 
+As we have learnt `patchwork` [here](week02.html#composing-graphs-using-patchwork), I will be using patchwork to combine the plots together. The method that will be introduced here will be `plot_spacer()`, which will creates an empty transparent patch that can be added to push your other plots apart. [Reference](https://patchwork.data-imaginist.com/reference/plot_spacer.html).
 
 ```{r}
 #| code-fold: true
@@ -545,7 +555,6 @@ pacman::p_load(ggExtra)
 ```
 
 ::: panel-tabset
-
 ## Density
 
 ```{r}
@@ -616,7 +625,6 @@ ggMarginal(scatter_plot,
            type ="boxplot", 
            color = "black")
 ```
-
 :::
 
 ### 3.5.3 Creating an interactive scatter plot with marginal distribution
@@ -685,11 +693,9 @@ final_plot
 
 The basic concepts of animation and the terminologies are covered in the chapter [here](https://r4va.netlify.app/chap04). For me, the two key takeaways are:
 
-1. **What We Can Do with Animated Graphics** <br>
-Animated graphics help create engaging and impactful data visualizations by showing changes over time or across categories. They are built by stitching together multiple frames, much like a flipbook, using tools like `gganimate` and `plotly` in R. Additionally, data reshaping (`tidyr`) and transformation (`dplyr`) are essential for preparing data for animation. Animation attributes, such as frame duration and easing functions, allow further customization of how the animation flows.
+1.  **What We Can Do with Animated Graphics** <br> Animated graphics help create engaging and impactful data visualizations by showing changes over time or across categories. They are built by stitching together multiple frames, much like a flipbook, using tools like `gganimate` and `plotly` in R. Additionally, data reshaping (`tidyr`) and transformation (`dplyr`) are essential for preparing data for animation. Animation attributes, such as frame duration and easing functions, allow further customization of how the animation flows.
 
-2. **When to Use Animated Graphics** <br>
-Animated graphics are most effective in presentations or storytelling when visualizing trends or patterns over time. Their ability to guide audience attention makes them more engaging than static visuals. However, they may not be necessary for exploratory data analysis, where static charts might suffice. Always consider whether animation adds value before investing time in creating it.
+2.  **When to Use Animated Graphics** <br> Animated graphics are most effective in presentations or storytelling when visualizing trends or patterns over time. Their ability to guide audience attention makes them more engaging than static visuals. However, they may not be necessary for exploratory data analysis, where static charts might suffice. Always consider whether animation adds value before investing time in creating it.
 
 ```{r}
 #| warning: false
@@ -717,6 +723,7 @@ globalPop <- read_xls("../data/GlobalPopulation.xls",
 
 ::: panel-tabset
 ## Static
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -737,6 +744,7 @@ ggplot(data = globalPop,
 ```
 
 ## Animated
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -764,7 +772,6 @@ ggplot(data = globalPop,
 ### 4.3.1 Animated bubble plot with `ggplotly()` method
 
 ::: panel-tabset
-
 ## Default
 
 ```{r}
@@ -789,7 +796,7 @@ gg <- ggplot(data = globalPop,
 ggplotly(gg)
 ```
 
-The animated bubble plot above includes a play/pause button and a slider component for controlling the animation. 
+The animated bubble plot above includes a play/pause button and a slider component for controlling the animation.
 
 ## Removing the legend
 
@@ -816,7 +823,6 @@ gg <- ggplot(data = globalPop,
 
 ggplotly(gg)
 ```
-
 :::
 
 ### 4.3.2 Animated bubble plot with `plot_ly()` method
@@ -840,5 +846,3 @@ bp <- globalPop %>%
   layout(showlegend = FALSE)
 bp
 ```
-
-

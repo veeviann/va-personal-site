@@ -5,11 +5,18 @@ website:
   title: "VVA"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
       - about.qmd
       - sidebar:tutorials
+      - sidebar:take-home
       
+    right:
+      - icon: github
+        href: https://github.com/
+        aria-label: GitHub
+      - icon: house-fill
+        href: index.qmd
+        text: " "
+        
   sidebar:
   - id: tutorials
     title: "Hands-On Exercises"
@@ -23,7 +30,16 @@ website:
         text: Week 02
       - href: hands-on/week03.qmd
         text: Week 03
-      # navigation items
+      - href: hands-on/week04.qmd
+        text: Week 04
+
+  - id: take-home
+    title: "Take-home Exercises"
+    style: "docked"
+    collapse-level: 2
+    contents: 
+      - href: take-home/exercise01.qmd
+        text: Exercise 01
       
 format:
   html:

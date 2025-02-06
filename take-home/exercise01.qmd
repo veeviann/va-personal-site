@@ -1,0 +1,15 @@
+---
+title: "Exercise 01 - <Title>"
+format: html
+author: Vivian Chew
+sidebar: false
+date: 02/01/2025 #mm/dd/yyyy
+date-format: long
+date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+---
+
