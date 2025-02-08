@@ -8,8 +8,12 @@ website:
       - about.qmd
       - sidebar:tutorials
       - sidebar:take-home
+      - sidebar:in-class
       
     right:
+      - icon: house-fill
+        href: index.qmd
+        text: " "
       - icon: github
         href: https://github.com/
         aria-label: GitHub
@@ -19,7 +23,7 @@ website:
         
   sidebar:
   - id: tutorials
-    title: "Hands-On Exercises"
+    title: "Hands-on Exercises"
     style: "docked"
     background: light
     collapse-level: 2
@@ -40,6 +44,14 @@ website:
     contents: 
       - href: take-home/exercise01.qmd
         text: Exercise 01
+      
+  - id: in-class
+    title: "In-class Exercises"
+    style: "docked"
+    collapse-level: 2
+    contents: 
+      - href: in-class/exercise04.qmd
+        text: Exercise 04
       
 format:
   html:

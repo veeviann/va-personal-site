@@ -1,0 +1,67 @@
+---
+title: "Week 04's In Class Exercise"
+format: html
+author: Vivian Chew
+sidebar: false
+date: 02/08/2025 #mm/dd/yyyy
+date-format: long
+date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+---
+
+```{r}
+#| code-fold: true
+#| code-summary: "Loading packages & data import"
+
+pacman::p_load(haven, smartEDA, tidyverse, tidymodels, ggridges)
+
+exam_data <- read_csv("../data/Exam_data.csv")
+```
+
+## Comparing Boxplot & Ridgeline Plots
+
+::: panel-tabset
+## Boxplot
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+ggplot(data = exam_data, 
+       aes(x = ENGLISH,
+           y = CLASS)) +
+  geom_boxplot() +
+    scale_x_continuous(
+    name = "English scores",
+    limits = c(0, 100),
+    expand = c(0, 0)
+    ) +
+  theme_minimal()
+```
+
+## Ridgeline
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+ggplot(data = exam_data, 
+       aes(x = ENGLISH, 
+           y = CLASS,
+           height = after_stat(count))) +
+  geom_ridgeline(stat = "density",
+                 alpha = 0.8) + 
+  scale_x_continuous(
+    name = "English scores",
+    limits = c(0, 100),
+    expand = c(0, 0)
+    ) +
+  scale_y_discrete(name = "CLASS",
+                   expand = expansion(add = c(0.2, 2.6))) +
+  theme_minimal()
+```
+
+:::
