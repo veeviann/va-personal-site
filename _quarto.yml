@@ -36,6 +36,8 @@ website:
         text: Week 03
       - href: hands-on/week04.qmd
         text: Week 04
+      - href: hands-on/week05.qmd
+        text: Week 05
 
   - id: take-home
     title: "Take-home Exercises"
@@ -52,6 +54,8 @@ website:
     contents: 
       - href: in-class/exercise04.qmd
         text: Exercise 04
+      - href: in-class/exercise05.qmd
+        text: Exercise 05
       
 format:
   html:
