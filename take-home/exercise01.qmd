@@ -1,5 +1,5 @@
 ---
-title: "Exercise 01 - Title"
+title: "Exercise 01 - Heart Attack In Japan"
 format: html
 author: Vivian Chew
 sidebar: false
@@ -57,21 +57,31 @@ We will first examine risk factors beyond individual control before focusing on 
 ```{r}
 #| code-fold: true
 #| code-summary: "Loading the relevant packages"
-pacman::p_load(tidyverse,  
-               glm2,  
-               patchwork,  # For combining multiple ggplot2 plots  
-               corrplot,   # For correlation matrix visualization  
-               ggstatsplot, # For statistical visualizations  
-               gtsummary,  # For creating summary tables  
-               broom,
-               SmartEDA,
+pacman::p_load(broom,  
                ComplexUpset,
+               corrplot,
+               easystats,
                ggdist,
-               easystats
+               ggstatsplot,
+               gtsummary,
+               patchwork, 
+               SmartEDA,
+               tidyverse
 )
 ```
 
-A summary table detailing the purpose of each package (sorted alphabetically) will be provided.
+| **Package** | **Description** |
+|-----------------|-------------------------------------------------------|
+| **broom** | Converts statistical model outputs into tidy data frames for easy manipulation. |
+| **ComplexUpset** | Creates complex UpSet plots for visualizing intersections of sets. |
+| **corrplot** | Visualizes correlation matrices with customizable plots. |
+| **easystats** | A suite of tools for statistical modeling and interpretation. |
+| **ggdist** | Creates visualizations for distributions and uncertainty in ggplot2. |
+| **ggstatsplot** | Produces enhanced statistical plots with significance tests. |
+| **gtsummary** | Creates elegant summary tables for regression models and descriptive statistics. |
+| **patchwork** | Combines multiple ggplot2 plots into single layouts easily. |
+| **SmartEDA** | Performs automated exploratory data analysis (EDA) with summaries and visuals. |
+| **tidyverse** | A collection of packages for data manipulation, visualization, and analysis. |
 
 ## 2.2 Data Source
 
@@ -248,12 +258,12 @@ cat_w_target_report <-ExpCatViz(new_df,
 
 The code blocks above are the initial EDA tests ran. The insights are as follows:
 
-1.  Distribution of Variables: Most numerical variables exhibit normal distribution patterns. Age stands out as an exception, showing a uniform distribution across the sample.
-2.  Heart Attack Incidence: A relatively small proportion (10%) of participants reported experiencing a heart attack.
-3.  Demographic Characteristics: Gender representation is nearly balanced in the sample. Majority of the respondents (70%) were from the Urban region.
-4.  Relationship Between Variables and Heart Attack Occurrence:
-    1.  Correlation Analysis: Scatter plots reveal no apparent correlations between pairs of numerical variables.
-    2.  Distribution Comparison: Boxplot analysis shows substantial overlap in the distributions of numerical variables between those who experienced heart attacks and those who did not, indicating no clear distinctions based on these variables alone.
+1.  **Distribution of Variables**: Most numerical variables exhibit normal distribution patterns. Age stands out as an exception, showing a uniform distribution across the sample.
+2.  **Heart Attack Incidence**: A relatively small proportion (10%) of participants reported experiencing a heart attack.
+3.  **Demographic Characteristics**: Gender representation is nearly balanced in the sample. Majority of the respondents (70%) were from the Urban region.
+4.  **Relationship Between Variables and Heart Attack Occurrence**:
+    1.  **Correlation Analysis**: Scatter plots reveal no apparent correlations between pairs of numerical variables.
+    2.  **Distribution Comparison**: Boxplot analysis shows substantial overlap in the distributions of numerical variables between those who experienced heart attacks and those who did not, indicating no clear distinctions based on these variables alone.
 
 ## 3.3 Binning Numerical Variables
 
@@ -261,22 +271,22 @@ The intent of binning numerical variables is to obtain more interpretable odds r
 
 The bins are as follows:
 
-1.  Age: The age variable is divided into 12 categories, spanning from 18 to 80 years old, with 5-year intervals (e.g., 18-24, 25-29, 30-34, etc.).
+1.  **Age**: The age variable is divided into 12 categories, spanning from 18 to 80 years old, with 5-year intervals (e.g., 18-24, 25-29, 30-34, etc.).
 
-2.  BMI (Body Mass Index): BMI is categorized into four groups based on standard classifications \[2\]:
+2.  **BMI (Body Mass Index**): BMI is categorized into four groups based on standard classifications \[2\]:
 
 -   Underweight: Less than 18.5
 -   Normal: 18.5 to less than 25
 -   Pre-Obese: 25 to 30
 -   Obese: 30 or greater
 
-3.  Cholesterol: Cholesterol levels are grouped into three categories \[4\]:
+3.  **Cholesterol**: Cholesterol levels are grouped into three categories \[4\]:
 
     -   Low: Less than 120 mg/dL
     -   Normal: 120 to less than 219 mg/dL
     -   High: 219 mg/dL or greater
 
-4.  Stress: Stress levels are divided into five categories based on a 0-10 scale:
+4.  **Stress**: Stress levels are divided into five categories based on a 0-10 scale:
 
     -   Very Low: 0 to 2
     -   Low: 2 to 4
@@ -284,9 +294,9 @@ The bins are as follows:
     -   High: 6 to 8
     -   Very High: 8 to 10
 
-5.  Heart Rate: Heart rate is categorized into eight groups, with 10 beats per minute intervals, ranging from less than 40 to 110 beats per minute.
+5.  **Heart Rate**: Heart rate is categorized into eight groups, with 10 beats per minute intervals, ranging from less than 40 to 110 beats per minute.
 
-6.  Blood Pressure: Blood pressure grades are categorized according to \[3\].
+6.  **Blood Pressure**: Blood pressure grades are categorized according to \[3\].
 
 ```{r}
 #| code-fold: true
@@ -346,7 +356,7 @@ new_df2 <- new_df %>%
 ## 3.4 Final Description of the Features
 
 | Group\* | Subgroup | Name | Description |
-|------------------|------------------|------------------|--------------------|
+|------------------|------------------|------------------|-------------------|
 | U | Demographics | Age | Range from 18 - 79 |
 | U | Demographics | Age Group | Binned age in intervals of 5, with the exception of 18-24 |
 | U | Demographics | Gender | Male, Female |
@@ -379,8 +389,6 @@ new_df2 <- new_df %>%
 2.  [JSH 2019 Office Guidelines](https://pmc.ncbi.nlm.nih.gov/articles/PMC8479451/#bib0012)
 3.  [Key Points of the 2019 Japanese Society of Hypertension Guidelines for the Management of Hypertension](https://pmc.ncbi.nlm.nih.gov/articles/PMC6875598/)
 4.  [Total Cholesterol Range](https://www.hc.u-tokyo.ac.jp/en/checkupresult/explanation/lipid/)
-
-https://krassowski.github.io/complex-upset/articles/Examples_R.html
 
 # 4. Data Analysis
 
@@ -608,22 +616,22 @@ p3 <- ggplot()+
 This visualization presents a **comparative analysis of age and gender distributions** across three different populations:
 
 1.  **Japan's General Population** (Top-left)
-    -   Shows the natural age and gender distribution in Japan.\
+    -   Shows the natural age and gender distribution in Japan.
     -   Males and females are represented by different colors.
 2.  **Study Sample Distribution** (Top-right)
-    -   Represents the age and gender composition of the dataset used for analysis.\
+    -   Represents the age and gender composition of the dataset used for analysis.
     -   Helps assess how well the sample represents the actual Japanese population.
 3.  **Heart Attack Cases (Bottom Panel, Weighted by Japan’s Population)**
-    -   Illustrates the age and gender distribution of individuals who reported heart attack occurrences.\
+    -   Illustrates the age and gender distribution of individuals who reported heart attack occurrences.
     -   Bars in the background represent the adjusted (based on population distributed) baseline sample distribution
     -   The **darker bars show the proportion of heart attack cases**, allowing for direct comparison - if the bars are outside the baseline, means this group has larger representation in the heart attack cases.
 
 The key observations are:
 
--   **Higher Heart Attack Incidence in Older Age Groups:** The proportion of heart attack cases increases with age, especially in individuals aged **50 and above**.\
+-   **Higher Heart Attack Incidence in Older Age Groups:** The proportion of heart attack cases increases with age, especially in individuals aged **50 and above**.
 -   **Gender Differences:**
-    -   Males have a **higher representation** in heart attack cases compared to females in most age groups.\
-    -   This pattern aligns with existing medical research suggesting that men are at a **higher risk of cardiovascular diseases** at younger ages.\
+    -   Males have a **higher representation** in heart attack cases compared to females in most age groups.
+    -   This pattern aligns with existing medical research suggesting that men are at a **higher risk of cardiovascular diseases** at younger ages.
 -   **Lower Incidence in Younger Groups**:
     -   The 18-29 age group has the lowest proportion of heart attack cases, aligning with the expected lower risk for younger individuals.
 -   **Sample Representativeness:**
@@ -681,21 +689,21 @@ p
 
 This visualization consists of two key components:
 
-1.  Stacked Bar Plot (Top Panel) – Heart Attack Occurrence by Medical History Intersection:
+1.  **Stacked Bar Plot (Top Panel) – Heart Attack Occurrence by Medical History Intersection**:
+    -   Each bar represents a specific combination of medical history factors (Smoking, Family History, Hypertension, Diabetes). The red portion (percentage labeled) represents individuals who experienced a heart attack, while the orange portion represents those who did not.
+    -   The proportion of heart attack occurrences ranges from 9% to 14%, indicating that certain medical history combinations are associated with a higher likelihood of heart attacks.
+    -   The highest risk categories (12–14% heart attack rate) involve individuals with multiple conditions, such as hypertension, diabetes, and smoking history.
 
--   Each bar represents a specific combination of medical history factors (Smoking, Family History, Hypertension, Diabetes). The red portion (percentage labeled) represents individuals who experienced a heart attack, while the orange portion represents those who did not.
--   The proportion of heart attack occurrences ranges from 9% to 14%, indicating that certain medical history combinations are associated with a higher likelihood of heart attacks.
--   The highest risk categories (12–14% heart attack rate) involve individuals with multiple conditions, such as hypertension, diabetes, and smoking history.
+<!-- -->
 
-2.  Upset Plot (Bottom Panel) – Medical History Combinations and Frequencies:
+2.  **Upset Plot (Bottom Panel) – Medical History Combinations and Frequencies**:
+    -   The bar heights indicate the number of individuals in each medical history category.
+    -   The largest group (8,791 individuals) has no recorded medical history of these conditions.
+    -   Other major groups include individuals with family history, hypertension, and smoking history in different combinations.
+    -   The dots below the bars indicate the specific medical conditions present in each group, with multiple black dots showing co-occurring risk factors.
+    -   Groups with three or more risk factors have fewer individuals but show higher heart attack rates, reinforcing the cumulative effect of these conditions.
 
--   The bar heights indicate the number of individuals in each medical history category.
--   The largest group (8,791 individuals) has no recorded medical history of these conditions.
--   Other major groups include individuals with family history, hypertension, and smoking history in different combinations.
--   The dots below the bars indicate the specific medical conditions present in each group, with multiple black dots showing co-occurring risk factors.
--   Groups with three or more risk factors have fewer individuals but show higher heart attack rates, reinforcing the cumulative effect of these conditions.
-
-Individuals with multiple risk factors (e.g., smoking + hypertension + diabetes) are at higher risk of heart attacks compared to the average. Preventive measures should focus on individuals with multiple risk factors, as they represent the highest-risk categories.
+**Individuals with multiple risk factors (e.g., smoking + hypertension + diabetes) are at higher risk of heart attacks compared to the average**. Preventive measures should focus on individuals with multiple risk factors, as they represent the highest-risk categories.
 
 ## 4.3 How Do Uncontrollable Factors Interact in Determining Your Heart Attack Risk?
 
@@ -744,7 +752,7 @@ tbl_merge(
   tab_spanner = c("**Univariate**", "**Multivariate**")) # set header names
 ```
 
-The table above compares the odds ratio and its confidence interval for the factors, when modelled univariately and when modelled as a multivariate model. We can see that the odds ratio do not differ when modeled together.. then?
+The table presents the odds ratios and confidence intervals for various factors associated with heart attack occurrence, comparing results from **univariate** and **multivariate** logistic regression models. The odds ratios remain largely unchanged between the two models, indicating that **there is minimal confounding among the included variables**. This suggests that each factor—such as age group, smoking history, hypertension, diabetes, and family history—**contributes independently to heart attack risk** rather than being strongly influenced by other factors in the model. Notably, only the **35-39 age group shows a significantly higher risk**, while the other factors do not exhibit statistically significant associations. Further analyses, such as interaction tests, may be needed to explore potential combined effects between variables.
 
 ```{r}
 #| code-fold: true
@@ -776,13 +784,13 @@ Despite variations in odds ratios across age groups and medical history factors,
 check_model(final_mv_reg)
 ```
 
-1.  Posterior Predictive Check: Observed and model-predicted data align well, indicating good overall fit.
-2.  Binned Residuals: Several residuals fall outside error bounds, particularly between 10%–11% predicted probabilities, suggesting model miscalibration.
-3.  Influential Observations: All the points are within the contour lines.
-4.  Collinearity: All predictors have VIF values below 5, ruling out multicollinearity concerns.
-5.  Uniformity of Residuals: Residuals follow the expected distribution, suggesting no significant pattern in errors.
+1.  **Posterior Predictive Check**: Observed and model-predicted data align well, indicating good overall fit.
+2.  **Binned Residuals**: Several residuals fall outside error bounds, particularly between 10%–11% predicted probabilities, suggesting model miscalibration.
+3.  **Influential Observations**: All the points are within the contour lines.
+4.  **Collinearity**: All predictors have VIF values below 5, ruling out multicollinearity concerns.
+5.  **Uniformity of Residuals**: Residuals follow the expected distribution, suggesting no significant pattern in errors.
 
-The model fits the data well but shows issues with calibration. For probability calibration, platt scaling or isotonic regression could be considered. Model could be refined by adding interaction or polynomial terms.
+The model fits the data well but shows issues with calibration. For probability calibration, Platt scaling or isotonic regression could be considered. Model could be refined by adding interaction or polynomial terms.
 
 ## 4.4 Does Your Behavioural and Lifestyle Factors Influence Your Medical Indicators?
 
@@ -831,12 +839,12 @@ p6 <- ggbetweenstats(new_df2,
 (p1 + p2)/(p3 + p4)/(p5 + p6)
 ```
 
--   BMI: No significant difference across activity levels (p = 0.61), with mean BMIs around 25.
--   Stress Levels: No significant effect of physical activity (p = 0.29), stress averages \~5.
--   Heart Rate: Minimal difference between groups (p = 0.36), with means around 70 bpm.
--   Cholesterol Levels: No significant variation by activity level (p = 0.64), averages \~200 mg/dL.
--   Systolic Blood Pressure (BP): No effect of activity on systolic BP (p = 0.91), means \~119 mmHg.
--   Diastolic Blood Pressure (BP): Slightly lower diastolic BP with higher activity (p = 0.03), but differences are small (79.96 to 79.21 mmHg).
+-   **BMI**: No significant difference across activity levels (p = 0.61), with mean BMIs around 25.
+-   **Stress Levels**: No significant effect of physical activity (p = 0.29), stress averages \~5.
+-   **Heart Rate**: Minimal difference between groups (p = 0.36), with means around 70 bpm.
+-   **Cholesterol Levels**: No significant variation by activity level (p = 0.64), averages \~200 mg/dL.
+-   **Systolic Blood Pressure (BP)**: No effect of activity on systolic BP (p = 0.91), means \~119 mmHg.
+-   **Diastolic Blood Pressure (BP)**: Slightly lower diastolic BP with higher activity (p = 0.03), but differences are small (79.96 to 79.21 mmHg).
 
 Physical activity has minimal impact on these health metrics, with only a minor difference in diastolic BP. Other metrics show no significant differences.
 
@@ -885,6 +893,15 @@ pd6 <- ggbetweenstats(new_df2,
 (pd1 + pd2)/(pd3 + pd4)/(pd5 + pd6)
 ```
 
+-   **BMI**: No significant difference across diet quality levels (p = 0.54), with mean BMIs around 25.
+-   **Stress Levels**: Minor differences, not significant (p = 0.50), with averages \~5.
+-   **Heart Rate**: No significant variation (p = 0.98), means \~70 bpm.
+-   **Cholesterol Levels**: No significant difference (p = 0.67), averages \~200 mg/dL.
+-   **Systolic Blood Pressure (BP)**: Slight variation but not significant (p = 0.16), means \~120 mmHg.
+-   **Diastolic Blood Pressure (BP**): No significant difference (p = 0.93), means \~80 mmHg.
+
+Diet quality has no significant impact on BMI, stress, heart rate, cholesterol, or blood pressure. All health metrics remain stable regardless of diet quality.
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Alcohol Consumption VS Numerical Values"
@@ -930,12 +947,12 @@ pa6 <- ggbetweenstats(new_df2,
 (pa1 + pa2)/(pa3 + pa4)/(pa5 + pa6)
 ```
 
--   BMI: No significant difference across alcohol consumption levels (p = 0.78), with mean BMIs around 25.
--   Stress Levels: Slight variation but not significant (p = 0.07), with stress averages around 5.
--   Heart Rate: Minor differences but not significant (p = 0.09), with means around 70 bpm.
--   Cholesterol Levels: No significant variation (p = 0.70), average levels \~200 mg/dL.
--   Systolic Blood Pressure (BP): No significant differences (p = 0.68), means \~120 mmHg.
--   Diastolic Blood Pressure (BP): No significant differences (p = 0.59), means around 80 mmHg.
+-   **BMI**: No significant difference across alcohol consumption levels (p = 0.78), with mean BMIs around 25.
+-   **Stress Levels**: Slight variation but not significant (p = 0.07), with stress averages around 5.
+-   **Heart Rate**: Minor differences but not significant (p = 0.09), with means around 70 bpm.
+-   **Cholesterol Levels**: No significant variation (p = 0.70), average levels \~200 mg/dL.
+-   **Systolic Blood Pressure (BP)**: No significant differences (p = 0.68), means \~120 mmHg.
+-   **Diastolic Blood Pressure (BP**): No significant differences (p = 0.59), means around 80 mmHg.
 
 Alcohol consumption shows no significant effect on BMI, stress, heart rate, cholesterol, or blood pressure. All metrics remain stable across consumption levels.
 
@@ -1001,3 +1018,32 @@ final_mv_reg %>%
   labs(title = "Odds Ratio of Heart Attack Occurrence (Multivariate Model)") +
   scale_color_manual(values=c("#e72222", "#8cb8c5"))
 ```
+
+The multivariate model reveals two unexpected results. First, the Normal BMI group (18.5 to \<25) is associated with a higher risk of heart attack, which may indicate an issue with the reference group—possibly using "underweight" instead of "overweight" as the baseline. Additionally, reverse causality could be at play, where chronic illnesses lower BMI but increase heart attack risk.
+
+Second, high stress appears to lower heart attack risk, which is counter-intuitive. This may stem from survivourship bias, where individuals with heart conditions experience lifestyle adjustments that reduce stress levels. Additionally, measurement error from self-reported stress levels or unadjusted confounders, such as protective behaviors (e.g., exercise in high-stress careers), could influence this result.
+
+To address these issues, we might want to check the model's reference groups, adjust for comorbidities, and include interaction terms (e.g., stress × age).
+
+```{r}
+#| fig-height: 12
+#| fig-width: 8
+#| code-fold: true
+#| code-summary: "Model Diagnostic"
+
+check_model(final_mv_reg)
+```
+
+## 4.6 Conclusion
+
+The analysis aimed to explore heart attack risk across demographics and identified that individuals aged **35–39** have a higher odds ratio. However, when evaluating lifestyle factors, the results were inconsistent. There were **significant discrepancies between physical and medical indicators**, and the **controllable factors model produced counter-intuitive results**, such as high stress showing a protective effect. These issues make it difficult to derive clear recommendations for lifestyle adjustments.
+
+To address these concerns, it is essential to **refine the model** by reviewing reference groups to ensure appropriate baselines, such as using "normal BMI" and "low stress" as references. Additionally, including **interaction terms** (e.g., *age × physical activity*, *stress × BMI*) and adjusting for potential confounders, such as smoking and family history, can improve accuracy. A **stratified analysis by age** should also be performed, focusing on the 35–39 cohort to detect age-specific patterns.
+
+## 4.7 References
+
+1.  https://epirhandbook.com/en/
+2.  https://r4va.netlify.app/
+3.  https://krassowski.github.io/complex-upset/articles/Examples_R.html
+4.  https://clarewest.github.io/blog/post/2020-03-26-upsetr-beyond-the-venn-diagram/
+5.  https://www.color-hex.com/color-palette/49506
