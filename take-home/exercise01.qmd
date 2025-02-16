@@ -1,5 +1,5 @@
 ---
-title: "Exercise 01 - <Title>"
+title: "Exercise 01 - Title"
 format: html
 author: Vivian Chew
 sidebar: false
@@ -13,3 +13,991 @@ execute:
   freeze: true
 ---
 
+Disclaimer: The content has been parsed through various LLMs for refinement.
+
+# 1 Overview
+
+## 1.1 Background
+
+Cardiovascular diseases (CVDs) remain a major health concern in Japan, ranking as the second and fourth leading causes of death, according to recent statistics \[1\]. While overall CVD mortality has declined, challenges continue to exist in certain demographics and regions. In particular, the incidence of ischemic heart disease is projected to rise among urban male employees and middle-aged men \[2\]. Although projections suggest a potential decline in CVD-related deaths across most Japanese prefectures between 2020 and 2040 \[3\], this trend is not uniform. The evolving landscape of risk factors necessitates ongoing vigilance and targeted interventions.
+
+## 1.2 Objectives
+
+We will first examine risk factors beyond individual control before focusing on modifiable factors. The outcome variable (O) will be Heart Attack Occurrence. The goal is to provide recommendations for reducing heart attack risk by emphasizing controllable factors while recognizing the influence of non-modifiable ones.
+
+**Factors Beyond Individual Control (U)**
+
+-   Demographics & Medical History
+
+-   Key analyses:
+
+    1.  Examining age and sex distribution among heart attack patients.
+    2.  Investigating how medical history contributes to individual risk.
+    3.  Assessing the impact of all the uncontrollable factors on heart attack risk.
+
+**Modifiable Risk Factors (M)**
+
+-   Lifestyle & Behavioral Factors, Physical & Medical Indicators
+
+-   Key analyses:
+
+    1.  Examining the relationship between lifestyle behaviors and physical/medical indicators.
+    2.  Comparing univariate and multivariate models to understand how these factors interact.
+
+## 1.3 References
+
+1.  Ministry of Health, Labour and Welfare, Japan. (2022). *The 2021 vital statistics* \[in Japanese\]. [Link](https://www.mhlw.go.jp/toukei/saikin/hw/jinkou/kakutei21/index.html)
+2.  [Link to PMC article](https://pmc.ncbi.nlm.nih.gov/articles/PMC8692094/)
+3.  [National Cerebral and Cardiovascular Center](https://www.ncvc.go.jp/english/about/death-due-to-cardiovascular-disease-predicted-to-decrease-in-japan/)
+
+# 2 Getting Started
+
+## 2.1 Relevant Libraries
+
+```{r}
+#| code-fold: true
+#| code-summary: "Loading the relevant packages"
+pacman::p_load(tidyverse,  
+               glm2,  
+               patchwork,  # For combining multiple ggplot2 plots  
+               corrplot,   # For correlation matrix visualization  
+               ggstatsplot, # For statistical visualizations  
+               gtsummary,  # For creating summary tables  
+               broom,
+               SmartEDA,
+               ComplexUpset,
+               ggdist,
+               easystats
+)
+```
+
+A summary table detailing the purpose of each package (sorted alphabetically) will be provided.
+
+## 2.2 Data Source
+
+### 2.2.1 About the Data Source
+
+The dataset was originally retrieved from [this Kaggle repository](https://www.kaggle.com/datasets/ashaychoudhary/heart-attack-in-japan-youth-vs-adult/data). However, as of February 16, 2025, the page is no longer accessible, and we are unable to retrieve the dataset.
+
+According to the author, the dataset included:
+
+-   **Demographic data** (e.g., age, sex, region)
+-   **Medical history**
+-   **Lifestyle & behavioral factors**
+-   **Physical & medical indicators**
+-   **Electrocardiographic (ECG) data**
+
+Further details will be discussed in the data wrangling section. We have also extracted Japan population data from [here](https://www.populationpyramid.net/japan/2023/).
+
+### 2.2.2 Considerations and Limitations
+
+Several uncertainties and limitations must be acknowledged regarding this dataset:
+
+1.  **Study Design & Temporal Issues**
+
+    -   This is unlikely to be a cohort study and, at best, might be a retrospective cohort study. We assume it is a **case-control study**, but key uncertainties remain.
+    -   It is unclear whether certain health indicators (e.g., BMI, physical activity levels) were recorded **before or after** the heart attack. This means:
+        -   **Reverse causation is possible** (e.g., Did individuals have high BMI before their heart attack, or did they gain weight due to post-event health deterioration?).
+        -   **Behavioral changes post-heart attack** could influence results (e.g., Did those with high physical activity levels increase their exercise habits after experiencing a heart attack?).
+
+2.  **Unclear Baseline & Regional Ambiguity**
+
+    -   The dataset does not clarify whether the **recorded region** (urban/rural) reflects where individuals lived most of their lives.
+    -   Migration post-heart attack could affect interpretations (e.g., Did individuals move to an urban area for better healthcare, or relocate to a rural area for a lower-stress lifestyle?).
+
+3.  **Missing Information**
+
+    -   No details are provided on **heart attack severity** (e.g., intensity, number of occurrences).
+
+4.  **Potential Sampling Bias**
+
+    -   Survivorship bias: Individuals who died from a heart attack may not be included, affecting representativeness.
+
+5.  **Population Uncertainty**
+
+    -   The dataset does not specify whether participants are **Japanese nationals or residents of Japan**, which could have implications for generalizability.
+
+These limitations should be considered when interpreting any associations, as **correlation does not imply causation**, and some findings may be **bidirectional**.
+
+# 3. Data Wrangling
+
+```{r}
+#| code-fold: true
+#| code-summary: "Data import"
+
+df <- read_csv('data/japan_heart_attack_dataset.csv')
+```
+
+## 3.1 Should we remove the unknown columns?
+
+There were 15 columns named Extra_Columns\_ that were provided in the dataset. The initial suspicion was that it could be the ECG data as the authors claimed that ECG data was provided.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Visualizing the 15 unknown columns"
+
+original_colors <- c("#ddb1b1", "#d0839a", "#8cb8c5", "#e7a43b", "#e72222")
+custom_palette <- colorRampPalette(c("#d0839a", "#ddb1b1", "#8cb8c5"))(100)
+repeating_palette <- rep(original_colors, length.out = 100)
+
+df_last_15 <- df %>% 
+  select(tail(names(df), 15)) %>%
+  rename_with(~ gsub("Extra_Column_", "Col_", .x)) 
+
+df_check <- df_last_15 %>% 
+  slice_sample(n = 100) %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(row = row_number()) %>%
+  pivot_longer(cols = -row, names_to = "sample", values_to = "value")
+
+sample_lineplot <- ggplot(df_check, aes(x = row, y = value, color = sample)) +
+  geom_line() +
+  scale_color_manual(values = repeating_palette) +
+  labs(x = "Row", y = "Value", 
+       title = "LinePlot of Extra Columns",
+       subtitle = "Subsample of n = 100") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+last15_corrplot <- ggstatsplot::ggcorrmat(
+  data = df_last_15, 
+  ggcorrplot.args = list(outline.color = "black", 
+                         hc.order = TRUE,
+                         tl.cex = 10),
+  colors = custom_palette,
+  title    = "Correlogram for ",
+  subtitle = "Four pairs are no significant at p < 0.05"
+) + theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+combined_plot <- sample_lineplot + last15_corrplot
+combined_plot
+```
+
+Upon closer examination of the data, several concerning observations were made:
+
+1.  Visualization Issues: Sub-samples of the data, when plotted, do not resemble typical ECG wave-forms (Left). Another suspicion was that it could be derived features, such as single heartbeat feature (PQRST) extracted from the ECG signal and features \[1\].
+2.  Lack of Correlation: Contrary to expectations for ECG-derived features, there is no correlation observed among the features (Right). Typically, some level of correlation would be expected in signal data.
+3.  Statistical Analysis: A Kruskal-Wallis test using the 15 features to examine heart attack occurrence revealed no significant differences.
+
+Given these findings and in the interest of explanatory modelling, it has been decided to exclude these unknown features from further analysis. This decision is based on initial checks suggesting limited utility of these features, although a comprehensive multivariate analysis was not conducted. The focus will shift to more reliable and interpretable variables for the study of heart attack risk factors.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Kruskal test"
+
+df_last_16 <- df %>% 
+  select(tail(names(df), 16)) %>%
+  rename_with(~ gsub("Extra_Column_", "Col_", .x)) 
+
+kwtest_stats_table <- df_last_16 %>%
+  select(Col_1:Col_15, Heart_Attack_Occurrence) %>%
+  tbl_summary(
+    by = Heart_Attack_Occurrence,
+    statistic = list(all_continuous() ~ "{mean} ({sd})"),
+    missing = "no"
+  ) %>%
+  add_p(
+    test = list(all_continuous() ~ "kruskal.test")
+  ) %>%
+  add_overall() %>%
+  modify_header(label = "**Variable**") %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**By Outcome**")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Removing the 15 columns"
+
+new_df <- df[, 1:(ncol(df) - 15)]
+```
+
+## 3.2 Summary of Initial Data Checks
+
+```{r}
+#| code-fold: true
+#| code-summary: "EDA"
+#| fig-height: 8
+#| fig-width: 14
+
+na_counts <- colSums(is.na(df)) # Check for missing values
+num_report <- ExpNumViz(new_df, 
+          Page = c(2,4))
+cat_report <- ExpCatViz(new_df,
+                        Page = c(2,5))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "EDA with target variable"
+
+num_w_target_report <- ExpNumViz(new_df, target="Heart_Attack_Occurrence",
+                                 scatter=TRUE,
+                                 fname=NULL,
+                                 Page=c(3, 1))
+num_w_target_report2 <- ExpNumViz(new_df, target="Heart_Attack_Occurrence",
+                                 fname=NULL,
+                                 Page=c(1, 2))
+cat_w_target_report <-ExpCatViz(new_df,
+                                target = "Heart_Attack_Occurrence",
+                                Page = c(1, 2))
+```
+
+The code blocks above are the initial EDA tests ran. The insights are as follows:
+
+1.  Distribution of Variables: Most numerical variables exhibit normal distribution patterns. Age stands out as an exception, showing a uniform distribution across the sample.
+2.  Heart Attack Incidence: A relatively small proportion (10%) of participants reported experiencing a heart attack.
+3.  Demographic Characteristics: Gender representation is nearly balanced in the sample. Majority of the respondents (70%) were from the Urban region.
+4.  Relationship Between Variables and Heart Attack Occurrence:
+    1.  Correlation Analysis: Scatter plots reveal no apparent correlations between pairs of numerical variables.
+    2.  Distribution Comparison: Boxplot analysis shows substantial overlap in the distributions of numerical variables between those who experienced heart attacks and those who did not, indicating no clear distinctions based on these variables alone.
+
+## 3.3 Binning Numerical Variables
+
+The intent of binning numerical variables is to obtain more interpretable odds ratios when modeling.
+
+The bins are as follows:
+
+1.  Age: The age variable is divided into 12 categories, spanning from 18 to 80 years old, with 5-year intervals (e.g., 18-24, 25-29, 30-34, etc.).
+
+2.  BMI (Body Mass Index): BMI is categorized into four groups based on standard classifications \[2\]:
+
+-   Underweight: Less than 18.5
+-   Normal: 18.5 to less than 25
+-   Pre-Obese: 25 to 30
+-   Obese: 30 or greater
+
+3.  Cholesterol: Cholesterol levels are grouped into three categories \[4\]:
+
+    -   Low: Less than 120 mg/dL
+    -   Normal: 120 to less than 219 mg/dL
+    -   High: 219 mg/dL or greater
+
+4.  Stress: Stress levels are divided into five categories based on a 0-10 scale:
+
+    -   Very Low: 0 to 2
+    -   Low: 2 to 4
+    -   Moderate: 4 to 6
+    -   High: 6 to 8
+    -   Very High: 8 to 10
+
+5.  Heart Rate: Heart rate is categorized into eight groups, with 10 beats per minute intervals, ranging from less than 40 to 110 beats per minute.
+
+6.  Blood Pressure: Blood pressure grades are categorized according to \[3\].
+
+```{r}
+#| code-fold: true
+#| code-summary: "Binning variables and transforming to factors"
+
+age_breaks <- c(18, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80)
+age_labels <- c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", 
+                "50-54", "55-59", "60-64", "65-69", "70-74", "75-79")
+bmi_breaks <- c(-Inf, 18.5, 25, 30, Inf) 
+bmi_labels <- c("Underweight (<18.5)", "Normal (18.5 to <25)", "Pre-Obese (25 to 30)", "Obese (≥30)")
+
+cholesterol_breaks <- c(0, 120, 219, Inf)
+cholesterol_labels <- c("Low (<120)", "Normal (120 to <219)", "High (≥219)")
+
+stress_breaks <- c(-Inf, 2, 4, 6, 8, Inf)
+stress_labels <- c("Very Low (0-2)", "Low (2-4)", "Moderate (4-6)", "High (6-8)", "Very High (8-10)")
+
+heart_rate_breaks <- c(30, 40, 50, 60, 70, 80, 90, 100, 110)
+heart_rate_labels <- c("<40", "40-<50", "50-<60", "60-<70", "70-<80", "80-<90", "90-<100", "100-<110")
+
+bp_labels <- c("Normal", "High-Normal", "Elevated", "Hypertension Grade I", 
+               "Hypertension Grade II", "Hypertension (Isolated) Systolic", "Hypertension Grade III")
+
+new_df2 <- new_df %>%
+  mutate(
+    Age_Group = cut(Age, breaks = age_breaks, labels = age_labels, right = FALSE),
+    across(c(Smoking_History, Diabetes_History, Hypertension_History,
+             Family_History, Heart_Attack_Occurrence), .fns = ~+(.x == "Yes")),  # Change from Yes No to 1, 0
+    # Convert other category to factors
+    Physical_Activity = factor(Physical_Activity, levels = c("Low", "Moderate", "High")),
+    Diet_Quality = factor(Diet_Quality, levels = c("Poor", "Average", "Good")),
+    Alcohol_Consumption = factor(Alcohol_Consumption, levels = c("None", "Low", "Moderate", "High")),
+    # Numerical variables to binned groups
+    Age_Group = factor(Age_Group),
+    BMI_Group = cut(BMI, breaks = bmi_breaks, labels = bmi_labels, right = FALSE), 
+    BMI_Group = factor(BMI_Group, levels = bmi_labels),
+    Blood_Pressure = case_when(
+      Systolic_BP >= 180 | Diastolic_BP >= 110 ~ "Hypertension Grade III",
+      Systolic_BP >= 140 & Diastolic_BP < 90 ~ "Hypertension (Isolated) Systolic",
+      (Systolic_BP >= 160 & Systolic_BP <= 179) | (Diastolic_BP >= 100 & Diastolic_BP <= 109) ~ "Hypertension Grade II",
+      (Systolic_BP >= 140 & Systolic_BP <= 159) | (Diastolic_BP >= 90 & Diastolic_BP <= 99) ~ "Hypertension Grade I",
+      (Systolic_BP >= 130 & Systolic_BP <= 139) | (Diastolic_BP >= 80 & Diastolic_BP <= 89) ~ "Elevated",
+      Systolic_BP >= 120 & Systolic_BP <= 129 & Diastolic_BP < 80 ~ "High-Normal",
+      Systolic_BP < 120 & Diastolic_BP < 80 ~ "Normal",
+      TRUE ~ NA_character_  # Default for any values that don't match the above conditions
+    ),
+    Blood_Pressure = factor(Blood_Pressure, levels = bp_labels),
+    Cholesterol = cut(Cholesterol_Level, breaks = cholesterol_breaks, labels = cholesterol_labels, right = FALSE),
+    Cholesterol = factor(Cholesterol, levels = cholesterol_labels),
+    Stress = cut(Stress_Levels, breaks = stress_breaks, labels = stress_labels, right = FALSE),
+    Stress = factor(Stress, levels = stress_labels),
+    Heart_Rate_Group = cut(Heart_Rate, breaks = heart_rate_breaks, labels = heart_rate_labels, right = FALSE),
+    Heart_Rate_Group = factor(Heart_Rate_Group, levels = heart_rate_labels)
+  )
+```
+
+## 3.4 Final Description of the Features
+
+| Group\* | Subgroup | Name | Description |
+|------------------|------------------|------------------|--------------------|
+| U | Demographics | Age | Range from 18 - 79 |
+| U | Demographics | Age Group | Binned age in intervals of 5, with the exception of 18-24 |
+| U | Demographics | Gender | Male, Female |
+| U | Demographics | Region | Urban, Rural |
+| U | Medical History | Smoking History | Yes, No |
+| U | Medical History | Diabetes History | Yes, No |
+| U | Medical History | Hypertension History | Yes, No |
+| U | Medical History | Family History | Yes, No |
+| M | Lifestyle & Behavioral Factors | Physical Activity | Moderate, Low, High |
+| M | Lifestyle & Behavioral Factors | Diet Quality | Poor, Good, Average |
+| M | Lifestyle & Behavioral Factors | Alcohol Consumption | None, Low, Moderate, High |
+| M | Physical and Medical Indicators | BMI | Range from 5.5 - 46.1 |
+| M | Physical and Medical Indicators | BMI Group | Binned BMI according to \[2\] |
+| M | Physical and Medical Indicators | Heart Rate | Range from 30 - 110 |
+| M | Physical and Medical Indicators | Heart Rate Group | Binned by intervals of 10 |
+| M | Physical and Medical Indicators | Cholesterol Level | Range from 80 - 337 |
+| M | Physical and Medical Indicators | Cholesterol | Binned as Low, Normal, and High according to \[4\] |
+| M | Physical and Medical Indicators | Systolic BP | Range from 56 - 179 |
+| M | Physical and Medical Indicators | Diastolic BP | Range from 39 - 118 |
+| M | Physical and Medical Indicators | Blood Pressure | Binned according to \[3\] using systolic and diastolic BP |
+| M | Physical and Medical Indicators | Stress Levels | Range from 0 - 10 |
+| M | Physical and Medical Indicators | Stress | Binned by intervals of 2 points |
+| O |  | Heart Attack Occurrence | Yes, No |
+
+\**U: Uncontrolled Factors, M: Modifiable Factors, O: Outcome*
+
+## 3.5 References
+
+1.  [A machine learning approach for classifying healthy and infarcted patients using heart rate variabilities derived vector magnitude](https://www.sciencedirect.com/science/article/pii/S2772442522000612)
+2.  [JSH 2019 Office Guidelines](https://pmc.ncbi.nlm.nih.gov/articles/PMC8479451/#bib0012)
+3.  [Key Points of the 2019 Japanese Society of Hypertension Guidelines for the Management of Hypertension](https://pmc.ncbi.nlm.nih.gov/articles/PMC6875598/)
+4.  [Total Cholesterol Range](https://www.hc.u-tokyo.ac.jp/en/checkupresult/explanation/lipid/)
+
+https://krassowski.github.io/complex-upset/articles/Examples_R.html
+
+# 4. Data Analysis
+
+## 4.1 How Do Age and Gender Shape Heart Attack Risk?
+
+```{r}
+#| code-fold: true
+#| code-summary: "Converting japan population data"
+
+japan_pop <- read_csv('data/japan_pop_2023.csv')
+
+# Find the row where Age == "15 - 19"
+age_15_19 <- japan_pop %>% filter(Age == "15-19")
+
+# Calculate the adjusted counts for ages 18 and 19
+adjusted_M <- (age_15_19$M / 5) * 2
+adjusted_F <- (age_15_19$F / 5) * 2
+
+japan_pop <- japan_pop %>%
+  # Find the row where Age == "20 - 24" and add the adjusted counts
+  mutate(
+    M = ifelse(Age == "20-24", M + adjusted_M, M),
+    F = ifelse(Age == "20-24", F + adjusted_F, F)
+  ) %>%
+  # Change the Age value for "20-24" to "18-24"
+  mutate(
+    Age = ifelse(Age == "20-24", "18-24", Age)) %>% 
+  filter(Age %in% age_labels)
+
+japan_pop <- japan_pop %>%
+  pivot_longer(cols = c(M, F), names_to = "Gender", values_to = "Count") %>%
+  mutate(Proportion = Count / sum(Count)) %>%
+  mutate(Age = factor(Age, levels=age_labels),
+         Gender = factor(Gender)) %>%
+  mutate(
+      percent = round(100*(Count / sum(Count, na.rm=T)),1),  # calculate % of total for age-gender groups
+      percent = case_when(                                     # convert % to negative if male
+        Gender == "F" ~ percent,
+        Gender == "M" ~ -percent,
+        TRUE          ~ NA_real_),
+      Gender = factor(Gender, levels=c("F", "M"))
+    ) %>%
+  arrange(Age, Gender)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Data conversion for plotting the pyramid plot"
+
+convert_to_pyramid_data <- function(df) {
+
+  df %>% 
+    count(Age_Group, Gender, name = "counts") %>%  # counts by age-gender groups
+    ungroup() %>% 
+    mutate(
+      percent = round(100*(counts / sum(counts, na.rm=T)),1),  # calculate % of total for age-gender groups
+      percent = case_when(                                     # convert % to negative if male
+        Gender == "Female" ~ percent,
+        Gender == "Male" ~ -percent,
+        TRUE          ~ NA_real_)
+    )
+}
+
+pop_data <- convert_to_pyramid_data(new_df2)
+ha_data <- convert_to_pyramid_data(new_df2 %>% filter(Heart_Attack_Occurrence == 1))
+pyramid_data <- bind_rows("cases" = ha_data, "population" = pop_data, .id = "data_source")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Plotting the two age-sex pyramid"
+
+max_per <- max(pyramid_data$percent, na.rm=T)
+min_per <- min(pyramid_data$percent, na.rm=T)
+
+# The japan population data
+p1 <- ggplot() + 
+  geom_col(
+    data = japan_pop,
+    mapping = aes(
+      x = Age,
+      y = percent,
+      fill = Gender),
+    colour = "black",                             
+    width = 1)  +
+  coord_flip()+
+  scale_x_discrete(limits = age_labels) +
+  scale_fill_manual(
+    values = c("F" = "#d0839a",
+               "M" = "#8cb8c5"),
+    labels = c("F" = "Female",
+               "M"= "Male"),
+  ) +
+    scale_y_continuous(
+    limits = c(min_per, max_per),                                         
+    breaks = seq(floor(min_per), ceiling(max_per), by = 2),                
+    labels = paste0(                                                      
+              abs(seq(floor(min_per), ceiling(max_per), by = 2)), "%")) +
+  labs(
+    subtitle = "Age and gender distribution of Japan population",
+    x = "Percentage of Total (%)"
+  ) +   theme(legend.position = "none",
+        axis.title.y = element_blank(),
+        # optional aesthetic themes                    
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black"),
+    plot.title = element_text(hjust = 0), 
+    plot.caption = element_text(hjust=0, size=11, face = "italic"))
+  
+p2 <- ggplot() + 
+  geom_col(
+    data = pop_data,
+    mapping = aes(
+      x = Age_Group,
+      y = percent,
+      fill = Gender),
+    colour = "black",                             
+    width = 1)  +
+  coord_flip()+
+  scale_x_discrete(limits = age_labels) +
+  scale_fill_manual(
+    values = c("Female" = "#d0839a",
+               "Male" = "#8cb8c5"),
+    labels = c("Female" = "Female",
+               "Male"= "Male"),
+  ) +
+    scale_y_continuous(
+    limits = c(min_per, max_per),                                         
+    breaks = seq(floor(min_per), ceiling(max_per), by = 2),                
+    labels = paste0(                                                      
+              abs(seq(floor(min_per), ceiling(max_per), by = 2)), "%")) +
+  labs(
+    subtitle = "Age and gender distribution of sample",
+    x = "Percentage of Total (%)") + 
+  theme(legend.position = "none",
+        axis.title.y = element_blank(),
+        # optional aesthetic themes                    
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black"),
+    plot.title = element_text(hjust = 0), 
+    plot.caption = element_text(hjust=0, size=11, face = "italic"))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Weighting the percentage based on the japan population"
+
+weights <- japan_pop$percent/pop_data$percent 
+pop_data$weighted_pct <- pop_data$percent * weights
+ha_data$weighted_pct <- ha_data$percent * weights
+
+pyramid_data <- bind_rows("cases" = ha_data, "population" = pop_data, .id = "data_source")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Plotting the entire age-sex pyramid"
+#| fig-height: 10
+#| fig-width: 7
+# From here https://epirhandbook.com/en/new_pages/age_pyramid.html 
+
+p3 <- ggplot()+  
+  geom_col(
+    data = pyramid_data %>% filter(data_source == "population"),
+    mapping = aes(
+      x = Age_Group,
+      y = weighted_pct,
+      fill = Gender),
+    colour = "black",                               # black color around bars
+    alpha = 0.2,                                    # more transparent
+    width = 1)+                                     # full width
+  
+  geom_col(
+    data = pyramid_data %>% filter(data_source == "cases"), 
+    mapping = aes(
+      x = Age_Group,                               # age categories as original X axis
+      y = weighted_pct,                                # % as original Y-axis
+      fill = Gender),                             # fill of bars by gender
+    colour = "black",                               # black color around bars
+    alpha = 1,                                      # not transparent 
+    width = 0.3)+                                   # half width
+
+  coord_flip()+
+  scale_x_discrete(limits = age_labels) +
+  scale_y_continuous(
+    limits = c(min_per, max_per),                                         
+    breaks = seq(floor(min_per), ceiling(max_per), by = 2),              
+    labels = paste0(                                                     
+              abs(seq(floor(min_per), ceiling(max_per), by = 2)), "%"))+                                                  
+
+  # designate colors and legend labels manually
+  scale_fill_manual(
+    values = c("Female" = "#d0839a",
+               "Male" = "#8cb8c5"),
+    labels = c("Female" = "Female",
+               "Male"= "Male"), 
+  ) +
+  
+  # plot labels, titles, caption    
+  labs(
+    title = "Age and gender distribution of respondents with heart attack,\nas compared to baseline population",
+    subtitle = "The age and gender distribution has been weighted based on the Japan population",
+    x = "Age Category",
+    y = "Weighted Percentage of Total (%)",
+    fill = NULL,
+    caption = stringr::str_glue("Cases shown on top of adjusted sample demographic baseline\nData from Kaggle, n = {nrow(df)}")) +
+  
+  # optional aesthetic themes
+  theme(
+    legend.position = "bottom",                             # move legend to bottom
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black"),
+    plot.title = element_text(hjust = 0), 
+    plot.caption = element_text(hjust=0, size=11, face = "italic"))
+
+(p1+p2)/p3 + plot_layout(heights = c(3, 7))
+```
+
+This visualization presents a **comparative analysis of age and gender distributions** across three different populations:
+
+1.  **Japan's General Population** (Top-left)
+    -   Shows the natural age and gender distribution in Japan.\
+    -   Males and females are represented by different colors.
+2.  **Study Sample Distribution** (Top-right)
+    -   Represents the age and gender composition of the dataset used for analysis.\
+    -   Helps assess how well the sample represents the actual Japanese population.
+3.  **Heart Attack Cases (Bottom Panel, Weighted by Japan’s Population)**
+    -   Illustrates the age and gender distribution of individuals who reported heart attack occurrences.\
+    -   Bars in the background represent the adjusted (based on population distributed) baseline sample distribution
+    -   The **darker bars show the proportion of heart attack cases**, allowing for direct comparison - if the bars are outside the baseline, means this group has larger representation in the heart attack cases.
+
+The key observations are:
+
+-   **Higher Heart Attack Incidence in Older Age Groups:** The proportion of heart attack cases increases with age, especially in individuals aged **50 and above**.\
+-   **Gender Differences:**
+    -   Males have a **higher representation** in heart attack cases compared to females in most age groups.\
+    -   This pattern aligns with existing medical research suggesting that men are at a **higher risk of cardiovascular diseases** at younger ages.\
+-   **Lower Incidence in Younger Groups**:
+    -   The 18-29 age group has the lowest proportion of heart attack cases, aligning with the expected lower risk for younger individuals.
+-   **Sample Representativeness:**
+    -   The sample (top-right) appears to be well-distributed compared to the general Japanese population (top-left), suggesting that findings may be broadly applicable.
+
+## 4.2 Does Your Medical History Decide Your Heart Attack Risk?
+
+```{r}
+#| fig-height: 8
+#| fig-width: 12
+#| code-fold: true
+#| code-summary: "Creating the combination plot"
+
+mean_proportion <- mean(new_df2$Heart_Attack_Occurrence, na.rm = TRUE)
+mean_BMI <- mean(new_df2$BMI, na.rm = TRUE)
+new_df2$Heart_Attack_Occurrence2 <- factor(new_df2$Heart_Attack_Occurrence, levels = c("0", "1"))
+
+p <- ComplexUpset::upset(new_df2, 
+    c("Smoking_History", "Diabetes_History", "Hypertension_History", "Family_History"), 
+    name='Medical History',
+    base_annotations=list(
+        'Intersection size'=intersection_size()
+    ),
+    annotations = list(
+        'Heart Attack Occurrence'=list(
+            aes = aes(x = intersection, fill = Heart_Attack_Occurrence2),
+            geom = list(
+                geom_bar(stat = 'count', position = 'fill', na.rm = TRUE),
+                geom_hline(yintercept = mean_proportion, linetype = "dashed", color = "black"),
+                annotate("text", x = Inf, y = mean_proportion, 
+         label = sprintf("%.2f", mean_proportion*100),  # Annotate with a % at the end. 
+         hjust = 1.4, vjust = -0.5, color = "black", size = 3),
+                scale_fill_manual(
+                    name = "Heart Attack",
+                    values = c("0" = alpha("#e7a43b", 0.8), "1" = "#e72222"),  
+                    labels = c("1" = "Yes", "0" = "No")
+                ),
+          geom_text(
+                    aes(
+                        label=!!aes_percentage(relative_to='intersection'),
+                        group=Heart_Attack_Occurrence2
+                    ),
+                    stat='count',
+                    position=position_fill(vjust = .5)
+                ),
+                scale_y_continuous(labels=scales::percent_format())
+            ))
+    ),
+    width_ratio = 0.1,
+    wrap=TRUE
+) + ggtitle("Impact of Medical History on Heart Attack Occurrence: An Upset and Proportional Analysis")
+
+p
+```
+
+This visualization consists of two key components:
+
+1.  Stacked Bar Plot (Top Panel) – Heart Attack Occurrence by Medical History Intersection:
+
+-   Each bar represents a specific combination of medical history factors (Smoking, Family History, Hypertension, Diabetes). The red portion (percentage labeled) represents individuals who experienced a heart attack, while the orange portion represents those who did not.
+-   The proportion of heart attack occurrences ranges from 9% to 14%, indicating that certain medical history combinations are associated with a higher likelihood of heart attacks.
+-   The highest risk categories (12–14% heart attack rate) involve individuals with multiple conditions, such as hypertension, diabetes, and smoking history.
+
+2.  Upset Plot (Bottom Panel) – Medical History Combinations and Frequencies:
+
+-   The bar heights indicate the number of individuals in each medical history category.
+-   The largest group (8,791 individuals) has no recorded medical history of these conditions.
+-   Other major groups include individuals with family history, hypertension, and smoking history in different combinations.
+-   The dots below the bars indicate the specific medical conditions present in each group, with multiple black dots showing co-occurring risk factors.
+-   Groups with three or more risk factors have fewer individuals but show higher heart attack rates, reinforcing the cumulative effect of these conditions.
+
+Individuals with multiple risk factors (e.g., smoking + hypertension + diabetes) are at higher risk of heart attacks compared to the average. Preventive measures should focus on individuals with multiple risk factors, as they represent the highest-risk categories.
+
+## 4.3 How Do Uncontrollable Factors Interact in Determining Your Heart Attack Risk?
+
+```{r}
+#| code-fold: true
+#| code-summary: "Univariate regression"
+univ_tab <- tbl_uvregression(
+    new_df2,
+    method = glm,                           ## define regression want to run (generalised linear model)
+    y = Heart_Attack_Occurrence,   
+    include = c(
+  "Age_Group", "Gender", "Region", 
+  "Smoking_History", "Diabetes_History",
+  "Hypertension_History", "Family_History"),
+    method.args = list(family = binomial),  ## define what type of glm want to run (logistic)
+    exponentiate = TRUE                     ## exponentiate to produce odds ratios (rather than log odds)
+  )
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Multivariate regression"
+
+explanatory_vars <- c(
+  "Age_Group", "Gender", "Region", "Smoking_History", "Diabetes_History",
+  "Hypertension_History", "Family_History")
+
+mv_reg <- explanatory_vars %>%  ## begin with vector of explanatory column names
+  str_c(collapse = "+") %>%     ## combine all names of the variables of interest separated by a plus
+  str_c("Heart_Attack_Occurrence ~ ", .) %>%    ## combine the names of variables of interest with outcome in formula style
+  glm(family = "binomial",      ## define type of glm as logistic,
+      data = new_df2)          ## define your dataset
+
+final_mv_reg <- mv_reg %>%
+  step(direction = "forward", trace = FALSE)
+
+mv_tab <- tbl_regression(final_mv_reg, exponentiate = TRUE)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Merge regression results"
+
+tbl_merge(
+  tbls = list(univ_tab, mv_tab),                          # combine
+  tab_spanner = c("**Univariate**", "**Multivariate**")) # set header names
+```
+
+The table above compares the odds ratio and its confidence interval for the factors, when modelled univariately and when modelled as a multivariate model. We can see that the odds ratio do not differ when modeled together.. then?
+
+```{r}
+#| code-fold: true
+#| code-summary: "Regression coefficients"
+
+final_mv_reg %>% 
+  model_parameters(exponentiate = TRUE) %>% 
+  plot() +
+  labs(title = "Odds Ratio of Heart Attack Occurrence (Multivariate Model)") +
+  scale_color_manual(values=c("#e72222", "#8cb8c5"))
+```
+
+This plot presents the **odds ratio of heart attack occurrence**, derived from a logistic regression model. In logistic regression, the coefficients represent the log-odds of an event occurring (in this case, a heart attack), and when exponentiated, they translate into odds ratios (ORs). An odds ratio above 1 indicates an increased risk, while an odds ratio below 1 suggests a reduced risk.
+
+Each point represents the estimated odds ratio for a given variable, with the horizontal bars denoting the confidence intervals. If a confidence interval crosses the vertical dashed line at 1.00 (the null value), it suggests that the effect is not statistically significant.
+
+-   The age group 35-39 is the only category with a significantly higher risk of heart attack, as indicated by its confidence interval not crossing 1.
+-   Other age groups show varying odds ratios, but their confidence intervals include 1, suggesting no strong evidence of increased risk.
+-   Similarly, gender, urban/rural region, and medical history factors such as smoking, diabetes, hypertension, and family history exhibit varying effects, but none are statistically significant.
+
+Despite variations in odds ratios across age groups and medical history factors, the only statistically significant predictor of increased heart attack risk in this model is being in the 35-39 age group. Other factors may still contribute to risk, but this model does not find strong enough evidence to confirm their impact.
+
+```{r}
+#| fig-height: 12
+#| fig-width: 8
+#| code-fold: true
+#| code-summary: "Model Diagnostic"
+
+check_model(final_mv_reg)
+```
+
+1.  Posterior Predictive Check: Observed and model-predicted data align well, indicating good overall fit.
+2.  Binned Residuals: Several residuals fall outside error bounds, particularly between 10%–11% predicted probabilities, suggesting model miscalibration.
+3.  Influential Observations: All the points are within the contour lines.
+4.  Collinearity: All predictors have VIF values below 5, ruling out multicollinearity concerns.
+5.  Uniformity of Residuals: Residuals follow the expected distribution, suggesting no significant pattern in errors.
+
+The model fits the data well but shows issues with calibration. For probability calibration, platt scaling or isotonic regression could be considered. Model could be refined by adding interaction or polynomial terms.
+
+## 4.4 Does Your Behavioural and Lifestyle Factors Influence Your Medical Indicators?
+
+```{r}
+#| code-fold: true
+#| code-summary: "Physical Activity VS Numerical Values"
+
+p1 <- ggbetweenstats(new_df2,
+                    x = Physical_Activity,
+                    y = BMI,
+                    pairwise.comparisons = TRUE, 
+                    title = "Physical Activity VS BMI")
+p2 <- ggbetweenstats(new_df2,
+                    x = Physical_Activity,
+                    y = Stress_Levels,
+                    pairwise.comparisons = TRUE, 
+                    title = "Physical Activity VS Stress Levels")
+p3 <- ggbetweenstats(new_df2,
+                    x = Physical_Activity,
+                    y = Heart_Rate,
+                    pairwise.comparisons = TRUE, 
+                    title = "Physical Activity VS Heart Rate")
+p4 <- ggbetweenstats(new_df2,
+                    x = Physical_Activity,
+                    y = Cholesterol_Level,
+                    pairwise.comparisons = TRUE, 
+                    title = "Physical Activity VS Cholesterol")
+p5 <- ggbetweenstats(new_df2,
+                    x = Physical_Activity,
+                    y = Systolic_BP,
+                    pairwise.comparisons = TRUE, 
+                    title = "Physical Activity VS Systolic BP")
+p6 <- ggbetweenstats(new_df2,
+                    x = Physical_Activity,
+                    y = Diastolic_BP,
+                    pairwise.comparisons = TRUE, 
+                    title = "Physical Activity VS Diastolic BP")
+```
+
+```{r}
+#| fig-height: 12
+#| fig-width: 10
+#| code-fold: true
+#| code-summary: "Physical Activity VS Numerical Factors"
+
+(p1 + p2)/(p3 + p4)/(p5 + p6)
+```
+
+-   BMI: No significant difference across activity levels (p = 0.61), with mean BMIs around 25.
+-   Stress Levels: No significant effect of physical activity (p = 0.29), stress averages \~5.
+-   Heart Rate: Minimal difference between groups (p = 0.36), with means around 70 bpm.
+-   Cholesterol Levels: No significant variation by activity level (p = 0.64), averages \~200 mg/dL.
+-   Systolic Blood Pressure (BP): No effect of activity on systolic BP (p = 0.91), means \~119 mmHg.
+-   Diastolic Blood Pressure (BP): Slightly lower diastolic BP with higher activity (p = 0.03), but differences are small (79.96 to 79.21 mmHg).
+
+Physical activity has minimal impact on these health metrics, with only a minor difference in diastolic BP. Other metrics show no significant differences.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Diet Quality VS Numerical Values"
+
+pd1 <- ggbetweenstats(new_df2,
+                    x = Diet_Quality,
+                    y = BMI,
+                    pairwise.comparisons = TRUE, 
+                    title = "Diet Quality VS BMI")
+pd2 <- ggbetweenstats(new_df2,
+                    x = Diet_Quality,
+                    y = Stress_Levels,
+                    pairwise.comparisons = TRUE, 
+                    title = "Diet Quality VS Stress Levels")
+pd3 <- ggbetweenstats(new_df2,
+                    x = Diet_Quality,
+                    y = Heart_Rate,
+                    pairwise.comparisons = TRUE, 
+                    title = "Diet Quality VS Heart Rate")
+pd4 <- ggbetweenstats(new_df2,
+                    x = Diet_Quality,
+                    y = Cholesterol_Level,
+                    pairwise.comparisons = TRUE, 
+                    title = "Diet Quality VS Cholesterol")
+pd5 <- ggbetweenstats(new_df2,
+                    x = Diet_Quality,
+                    y = Systolic_BP,
+                    pairwise.comparisons = TRUE, 
+                    title = "Diet Quality VS Systolic BP")
+pd6 <- ggbetweenstats(new_df2,
+                    x = Diet_Quality,
+                    y = Diastolic_BP,
+                    pairwise.comparisons = TRUE, 
+                    title = "Diet Quality VS Diastolic BP")
+```
+
+```{r}
+#| fig-height: 12
+#| fig-width: 10
+#| code-fold: true
+#| code-summary: "Diet Quality VS Numerical Factors"
+
+(pd1 + pd2)/(pd3 + pd4)/(pd5 + pd6)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Alcohol Consumption VS Numerical Values"
+
+pa1 <- ggbetweenstats(new_df2,
+                    x = Alcohol_Consumption,
+                    y = BMI,
+                    pairwise.comparisons = TRUE, 
+                    title = "Alcohol Consumpion VS BMI")
+pa2 <- ggbetweenstats(new_df2,
+                    x = Alcohol_Consumption,
+                    y = Stress_Levels,
+                    pairwise.comparisons = TRUE, 
+                    title = "Alcohol Consumpion VS Stress Levels")
+pa3 <- ggbetweenstats(new_df2,
+                    x = Alcohol_Consumption,
+                    y = Heart_Rate,
+                    pairwise.comparisons = TRUE, 
+                    title = "Alcohol Consumpion VS Heart Rate")
+pa4 <- ggbetweenstats(new_df2,
+                    x = Alcohol_Consumption,
+                    y = Cholesterol_Level,
+                    pairwise.comparisons = TRUE, 
+                    title = "Alcohol Consumpion VS Cholesterol")
+pa5 <- ggbetweenstats(new_df2,
+                    x = Alcohol_Consumption,
+                    y = Systolic_BP,
+                    pairwise.comparisons = TRUE, 
+                    title = "Alcohol Consumpion VS Systolic BP")
+pa6 <- ggbetweenstats(new_df2,
+                    x = Alcohol_Consumption,
+                    y = Diastolic_BP,
+                    pairwise.comparisons = TRUE, 
+                    title = "Alcohol Consumpion VS Diastolic BP")
+```
+
+```{r}
+#| fig-height: 12
+#| fig-width: 10
+#| code-fold: true
+#| code-summary: "Alcohol Consumption VS Numerical Factors"
+
+(pa1 + pa2)/(pa3 + pa4)/(pa5 + pa6)
+```
+
+-   BMI: No significant difference across alcohol consumption levels (p = 0.78), with mean BMIs around 25.
+-   Stress Levels: Slight variation but not significant (p = 0.07), with stress averages around 5.
+-   Heart Rate: Minor differences but not significant (p = 0.09), with means around 70 bpm.
+-   Cholesterol Levels: No significant variation (p = 0.70), average levels \~200 mg/dL.
+-   Systolic Blood Pressure (BP): No significant differences (p = 0.68), means \~120 mmHg.
+-   Diastolic Blood Pressure (BP): No significant differences (p = 0.59), means around 80 mmHg.
+
+Alcohol consumption shows no significant effect on BMI, stress, heart rate, cholesterol, or blood pressure. All metrics remain stable across consumption levels.
+
+## 4.5 How Do Uncontrollable Factors Interact in Determining Your Heart Attack Risk?
+
+```{r}
+#| code-fold: true
+#| code-summary: "Univariate regression - Modifiable factors"
+univ_tab <- tbl_uvregression(
+    new_df2,
+    method = glm,                           ## define regression want to run (generalised linear model)
+    y = Heart_Attack_Occurrence,   
+    include = c(
+  "Physical_Activity", "Diet_Quality",
+  "Alcohol_Consumption", "BMI_Group",
+  "Heart_Rate_Group", "Blood_Pressure",
+  "Cholesterol", "Stress"),
+    method.args = list(family = binomial),  ## define what type of glm want to run (logistic)
+    exponentiate = TRUE                     ## exponentiate to produce odds ratios (rather than log odds)
+  )
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Multivariate regression - Modifiable factors"
+
+explanatory_vars <- c(
+  "Physical_Activity", "Diet_Quality",
+  "Alcohol_Consumption", "BMI_Group",
+  "Heart_Rate_Group", "Blood_Pressure",
+  "Cholesterol", "Stress")
+
+mv_reg <- explanatory_vars %>%  ## begin with vector of explanatory column names
+  str_c(collapse = "+") %>%     ## combine all names of the variables of interest separated by a plus
+  str_c("Heart_Attack_Occurrence ~ ", .) %>%    ## combine the names of variables of interest with outcome in formula style
+  glm(family = "binomial",      ## define type of glm as logistic,
+      data = new_df2)          ## define your dataset
+
+final_mv_reg <- mv_reg %>%
+  step(direction = "forward", trace = FALSE)
+
+mv_tab <- tbl_regression(final_mv_reg, exponentiate = TRUE)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Merge regression results - Modifiable factors"
+
+tbl_merge(
+  tbls = list(univ_tab, mv_tab),                          # combine
+  tab_spanner = c("**Univariate**", "**Multivariate**")) # set header names
+```
+
+```{r}
+#| fig-height: 10
+#| fig-width: 8
+#| code-fold: true
+#| code-summary: "Regression coefficients"
+
+final_mv_reg %>% 
+  model_parameters(exponentiate = TRUE) %>% 
+  plot() +
+  labs(title = "Odds Ratio of Heart Attack Occurrence (Multivariate Model)") +
+  scale_color_manual(values=c("#e72222", "#8cb8c5"))
+```
