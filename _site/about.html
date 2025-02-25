@@ -100,7 +100,7 @@ ul.task-list li input[type="checkbox"] {
   </li>  
   <li class="nav-item dropdown ">
     <a class="nav-link dropdown-toggle" href="#" id="nav-menu-hands-on-exercises" role="link" data-bs-toggle="dropdown" aria-expanded="false">
- <span class="menu-text">Hands-On Exercises</span>
+ <span class="menu-text">Hands-on Exercises</span>
     </a>
     <ul class="dropdown-menu" aria-labelledby="nav-menu-hands-on-exercises">    
         <li>
@@ -119,6 +119,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="dropdown-item" href="./hands-on/week04.html">
  <span class="dropdown-text">Week 04</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="./hands-on/week05.html">
+ <span class="dropdown-text">Week 05</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -132,8 +136,28 @@ ul.task-list li input[type="checkbox"] {
   </li>  
     </ul>
   </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-in-class-exercises" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">In-class Exercises</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-in-class-exercises">    
+        <li>
+    <a class="dropdown-item" href="./in-class/exercise04.html">
+ <span class="dropdown-text">Exercise 04</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./in-class/exercise05.html">
+ <span class="dropdown-text">Exercise 05</span></a>
+  </li>  
+    </ul>
+  </li>
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> <i class="bi bi-house-fill" role="img">
+</i> 
+<span class="menu-text"> </span></a>
+  </li>  
   <li class="nav-item compact">
     <a class="nav-link" href="https://github.com/"> <i class="bi bi-github" role="img" aria-label="GitHub">
 </i> 
@@ -277,7 +301,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
+      var filterRegex = new RegExp("https:\/\/veeviann-isss608\.netlify\.app");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
