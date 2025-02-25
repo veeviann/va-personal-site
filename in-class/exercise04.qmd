@@ -44,6 +44,7 @@ ggplot(data = exam_data,
 ```
 
 ## Ridgeline
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
@@ -63,5 +64,4 @@ ggplot(data = exam_data,
                    expand = expansion(add = c(0.2, 2.6))) +
   theme_minimal()
 ```
-
 :::
