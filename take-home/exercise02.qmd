@@ -1,0 +1,1120 @@
+---
+title: "Exercise 02 - Be Tradewise or Otherwise"
+format: html
+author: Vivian Chew
+sidebar: false
+date: 03/09/2025 #mm/dd/yyyy
+date-format: long
+date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+---
+
+# 1 Overview
+
+## 1.1 Background
+
+Since Mr. Donald Trump took office as the President of the United States on January 20, 2025, global trade has come under intense scrutiny. His administration’s tariff policies, first implemented in 2019, particularly on goods such as steel and appliances, had significant ripple effects on international trade patterns. After assuming office in 2025, Trump introduced a second round of tariffs, further impacting global markets.
+
+These policies are expected to affect merchandise trade more significantly than services trade, as tariffs primarily target physical goods rather than intangible services. Understanding how Singapore’s trade has evolved since 2015 requires both data visualization and time-series analysis. By leveraging analytical techniques in R, this project aims to uncover trade trends, identify key shifts, and assess the broader impact of Trump’s trade policies on Singapore’s major trade partners and sectors.
+
+## 1.2 Objectives
+
+Singapore reports its trade data in two key categories:
+
+-   Services trade: Transactions involving transport, finance, business services, and digital trade.
+-   Merchandise trade: The exchange of physical goods such as machinery, electronics, and raw materials.
+
+### 1.2.1 Data Visualization Makeover
+
+This section will evaluate and improve three visualizations from the **services trade dataset**. The decision to focus on services trade for visualization critique is based on the following reasons:
+
+-   The services and merchandise trade datasets share similar visualization structures, meaning insights gained from one can be applied to the other.
+-   The services trade dataset is annual, making it less suitable for time-series modeling but still valuable for visual storytelling.
+-   A services trade focus ensures a cohesive critique and makeover.
+
+Each visualization will be critiqued for its strengths and weaknesses and redesigned using ggplot2 and other R packages to enhance clarity and interpretability.
+
+### 1.2.2 Time-Series Analysis
+
+The **merchandise trade dataset**, which provides monthly trade data, is more appropriate for time-series analysis and modeling. Since Trump’s tariffs primarily target physical goods, analyzing merchandise trade allows us to better understand their impact on Singapore’s trade patterns over time. This analysis will focus on:
+
+-   Singapore’s top 10 trading partners, with a particular emphasis on China, South Korea, and Australia, as these countries were directly affected by Trump’s tariffs.
+-   The top five merchandise trade categories, along with appliances and steel materials, which were explicitly targeted by U.S. tariffs.
+
+# 2 Getting Started
+
+## 2.1 Relevant Libraries
+
+```{r}
+#| code-fold: true
+#| code-summary: "Loading the relevant packages"
+pacman::p_load(
+  readxl,       # Reading Excel files
+  tidyverse,    # Data manipulation and visualization
+  geofacet,     # Geofaceted visualizations
+  ggh4x,        # Enhancements for ggplot2 (e.g., stat_difference for filled areas)
+  ggiraph,      # Interactive ggplot2 visualizations
+  lubridate,    # Date and time handling
+  ggalt,        # Alternative geoms (e.g., xspline for smooth edges)
+  patchwork,    # Combining multiple ggplot2 plots
+  plotly,       # Interactive plots
+  colorspace,   # Advanced color palettes
+  zoo,          # Rolling mean and time series operations
+  ggstream,     # Stream plots
+  fpp3          # Time series analysis
+)
+```
+
+| **Package**    | **Description**                                                                 |
+| -------------- | ------------------------------------------------------------------------------- |
+| **colorspace** | Provides advanced color palettes and manipulation tools for visualizations.     |
+| **fpp3**       | A collection of tools for time series analysis and forecasting.                 |
+| **geofacet**   | Creates geofaceted visualizations for spatial data.                             |
+| **ggalt**      | Provides alternative geoms, including xspline for smoother line edges.          |
+| **ggh4x**      | Extends ggplot2 with additional features like stat_difference for filled areas. |
+| **ggiraph**    | Enables interactive ggplot2 visualizations with tooltips and hover effects.     |
+| **ggstream**   | Generates stream plots to visualize time-based category proportions.            |
+| **lubridate**  | Simplifies working with dates and times in R.                                   |
+| **patchwork**  | Makes it easy to combine multiple ggplot2 plots into a single layout.           |
+| **plotly**     | Converts ggplot2 plots into interactive visualizations.                         |
+| **readxl**     | Reads Excel files into R efficiently.                                           |
+| **tidyverse**  | A collection of packages for data manipulation, visualization, and analysis.    |
+| **zoo**        | Provides functions for rolling means and time series operations.                |
+
+## 2.2 Data Source
+
+The data was retrieved from SingStat on 1st March 2025.
+- [Merchandise Trade](https://www.singstat.gov.sg/find-data/search-by-theme/trade-and-investment/merchandise-trade/latest-data)
+- [Trade in Services](https://www.singstat.gov.sg/find-data/search-by-theme/trade-and-investment/trade-in-services/latest-data)
+
+# 3 Data Visualization Makeover
+
+## 3.1 Selection of The Plots
+
+As previously mentioned, I have chosen the plots based on the dataset and will provide recommendations for improving the three plots from the trade service dataset. In this makeover, I aim to preserve the original message or story the designer intended to convey, while enhancing clarity by altering the way the data is presented.
+
+## 3.2. First Makeover
+### The Original
+
+![Fig 1a. The first figure we will be making over is a bar chart](ref_viz/viz1.png)
+
+The pros of the plot are that the vertical bars make it easy to see that both exports and imports have grown over time (as opposed to horizontal bars). Additionally, the totals are highlighted for each year, making the exact numbers accessible. Finally, they included additional information at the bottom is helpful to briefly mention about the trend, which may be helpful.
+
+However, each year has a different color, but the same distinction could be achieved with just two colors (one for exports, one for imports). The current scheme is visually appealing but distracting. Morever, since exports and imports alternate, it’s difficult to directly compare them across years. A faceted barplot may have been better. Finally, the trade balance is not immediately clear - we have to mentally subtract imports from exports to see the trade surplus.
+
+Therefore, my suggestion would be to create a line chart inspired from William Playfair’s trade-balance time-series chart.
+
+![Fig 1b. Suggested Visualization - To annotate the graph to show the trend clearly, and to make the graph interactive so we can obtain the values.](ref_viz/sugviz1.png)
+
+### The Makeover
+```{r}
+#| code-fold: true
+#| code-summary: "Loading the data"
+
+svc_trade <- read_csv('data/sg_svc_trade_by_category.csv')
+svc_trade_long <- svc_trade %>%
+  pivot_longer(
+    cols = -c(`Category Name`, `Major Category`, `Trade Type`),  # Exclude identifier columns
+    names_to = "Year",                                           # New column for year
+    values_to = "SGD (Million)"                                 # New column for values
+  ) %>%
+  mutate(Year = year(as.Date(paste0(Year, "-01-01"))))  # Convert Year to Date
+
+svc_trade_annual <- svc_trade_long %>%
+  group_by(`Trade Type`, Year) %>%
+  summarize(Total_Billion = sum(`SGD (Million)`/1000, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = `Trade Type`, values_from = Total_Billion)
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Calcuate CAGR"
+
+calculate_cagr <- function(start, end, n) {
+  cagr <- (end / start)^(1 / n) - 1
+  return (round(cagr * 100, 1))
+}
+yi_start = svc_trade_annual$Import[svc_trade_annual$Year == 2020]
+yi_end = svc_trade_annual$Import[svc_trade_annual$Year == 2024]
+ye_start = svc_trade_annual$Export[svc_trade_annual$Year == 2020]
+ye_end = svc_trade_annual$Export[svc_trade_annual$Year == 2024]
+import_cagr <- calculate_cagr(yi_start, yi_end, 2024 - 2020)
+export_cagr <- calculate_cagr(ye_start, ye_end, 2024 - 2020)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Plot the graph with ggigraph"
+
+# Inspired from https://r-graph-gallery.com/web-time-series-and-facetting.html 
+
+export_colour <- "#73ad00"
+import_colour <- "#3883c9"
+
+df <- svc_trade_annual %>%
+  filter(Year > 2009)
+
+wrapped_subtitle <- str_wrap(
+  "The areas highlight which aspect is in surplus. Both imports and exports have an increasing overall trend. In 2017, the amount of exports overtook the amount of imports.",
+  width = 80  # Adjust the width as needed
+)
+
+p <- ggplot(df, aes(x = Year)) +
+  geom_point_interactive(aes(x = Year, y = Import, 
+                             color = "Imports", 
+                             tooltip = sprintf("Year: %s\n Import: %.1f\n Export: %.1f \nTrade Balance: %.1f \nTotal Trade: %.1f",   Year, Import, Export, Export - Import, Export + Import),
+                             data_id = Import),
+                         size = 0.01,
+                         hover_nearest = TRUE) +
+  geom_point_interactive(aes(x = Year, y = Export, 
+                             color = "Exports", 
+                             tooltip = sprintf("Year: %s\n Import: %.1f\n Export: %.1f \nTrade Balance: %.1f \nTotal Trade: %.1f",   Year, Import, Export, Export - Import, Export + Import),
+                             data_id = Import),
+                         size = 0.01,
+                         hover_nearest = TRUE) +
+  geom_line(aes(y = Import, color = "Imports"),
+            stat = StatXspline,
+            spline_shape = -0.4
+            ) +
+  geom_line(aes(y = Export, color = "Exports"),
+            stat = StatXspline,
+            spline_shape = -0.4
+            ) +
+  # stat_difference() from ggh4x package applies the conditional fill
+  # based on which of Not_Cat and Cat is larger.
+  stat_difference(aes(ymin = Import, ymax = Export), alpha = 0.3) +
+  scale_color_manual(values = c(export_colour, import_colour)) +
+  scale_fill_manual(
+    values = c(
+      colorspace::lighten(export_colour), 
+      colorspace::lighten(import_colour), 
+      "grey60"
+    ),
+  labels = c("More Exports", "More Imports", "Equal")) +
+  coord_cartesian(xlim = c(2009, 2025), ylim = c(0, 600)) +  # Set axis limits
+  scale_x_continuous(breaks = seq(2010, 2024, 5)) +
+  scale_y_continuous(breaks = seq(0, 600, 100)) +
+  
+  # Annotate CAGR
+  annotate(
+    geom = "curve", 
+    x = 2020.5, y = ye_start + 80, xend = 2024, yend = ye_end + 30, 
+    curvature = -0.3, 
+    arrow = arrow(length = unit(2, "mm")),
+    color = export_colour,
+  ) +
+  annotate(
+    geom = "text", 
+    x = 2018.2, y = ye_end + 15, 
+    label = paste(strwrap(sprintf("Export CAGR increased by %.1f%% from 2020 to 2024", export_cagr), 
+                    width = 20), collapse = "\n"),
+    hjust = "left",
+    size = 3,
+    color = export_colour) +
+
+  annotate(
+    geom = "curve", 
+    x = 2020.5, y = yi_start - 20, xend = 2024, yend = yi_end - 30, 
+    curvature = 0.2, 
+    arrow = arrow(length = unit(2, "mm")),
+    color = import_colour
+  ) +
+  annotate(
+    geom = "text", 
+    x = 2021.5, y = yi_start - 53, 
+    label = paste(strwrap(sprintf("Import CAGR increased by %.1f%% from 2020 to 2024", import_cagr), 
+                    width = 20), collapse = "\n"),
+    size = 3,
+    hjust = "left",
+    color = import_colour) +
+
+
+  labs(
+    title = "Overall Exports and Imports of Services (2010-2024)",
+    subtitle = wrapped_subtitle,
+    caption = "Source: Singstat.gov.sg | Graphic: Vivian Chew",
+    y = "S$ Billion"
+  ) +
+  
+  theme_minimal(base_family = "Helvetica Neue") +
+  theme(
+    # Top-right position
+    # legend.pos = c(0.875, 0.975),
+    legend.position = "bottom",
+    # Elements within a guide are placed one next to the other in the same row
+    legend.direction = "vertical",
+    # Different guides are stacked vertically
+    legend.box = "horizontal",
+    # No legend title
+    legend.title = element_blank(),
+    # Light background color
+    # plot.background = element_rect(fill = "#e2e1dc", color = NA),
+    plot.margin = margin(20, 30, 20, 30),
+    # Customize the title. Note the new font family and its larger size.
+    plot.title = element_text(
+      margin = margin(0, 0, 0, 0), 
+      size = 14, 
+      family = "Helvetica Neue", 
+      face = "bold", 
+      vjust = 1, 
+      color = "grey25"
+    ),
+    plot.caption = element_text(size = 8),
+    # Remove titles for x and y axes.
+    axis.title.x = element_blank(),
+    # Specify color for the tick labels along both axes 
+    axis.text = element_text(color = "grey40"),
+    # Specify face and color for the text on top of each panel/facet
+    strip.text = element_text(face = "bold", color = "grey20")
+  )
+# Unfortunately the girafe object doesn't render on the Quarto HTML (but it works if I run on the cell, so it's very strange)
+# girafe(ggobj = p,
+#       width_svg = 8,
+#       height_svg = 6)
+p
+```
+
+Unfortunately, the girafe object doesn't render on the Quarto HTML (but it works if I run on the cell, so it's very strange). This is because of the spline plot. I did not manage to rectify this issue so the plot above will be a static plot instead. The plot below will be the interactive one. It shows the same thing just that the line is not "smooth".
+
+```{r}
+#| code-fold: true
+#| code-summary: "Plot the graph with ggigraph - no spline"
+
+# Inspired from https://r-graph-gallery.com/web-time-series-and-facetting.html 
+
+export_colour <- "#73ad00"
+import_colour <- "#3883c9"
+
+df <- svc_trade_annual %>%
+  filter(Year > 2009)
+
+wrapped_subtitle <- str_wrap(
+  "The areas highlight which aspect is in surplus. Both imports and exports have an increasing overall trend. In 2017, the amount of exports overtook the amount of imports.",
+  width = 80  # Adjust the width as needed
+)
+
+p <- ggplot(df, aes(x = Year)) +
+  geom_point_interactive(aes(x = Year, y = Import, 
+                             color = "Imports", 
+                             tooltip = sprintf("Year: %s\n Import: %.1f\n Export: %.1f \nTrade Balance: %.1f \nTotal Trade: %.1f",   Year, Import, Export, Export - Import, Export + Import),
+                             data_id = Import),
+                         size = 0.01,
+                         hover_nearest = TRUE) +
+  geom_point_interactive(aes(x = Year, y = Export, 
+                             color = "Exports", 
+                             tooltip = sprintf("Year: %s\n Import: %.1f\n Export: %.1f \nTrade Balance: %.1f \nTotal Trade: %.1f",   Year, Import, Export, Export - Import, Export + Import),
+                             data_id = Import),
+                         size = 0.01,
+                         hover_nearest = TRUE) +
+  geom_line(aes(y = Import, color = "Imports"),
+            spline_shape = -0.4
+            ) +
+  geom_line(aes(y = Export, color = "Exports"),
+            spline_shape = -0.4
+            ) +
+  # stat_difference() from ggh4x package applies the conditional fill
+  # based on which of Not_Cat and Cat is larger.
+  stat_difference(aes(ymin = Import, ymax = Export), alpha = 0.3) +
+  scale_color_manual(values = c(export_colour, import_colour)) +
+  scale_fill_manual(
+    values = c(
+      colorspace::lighten(export_colour), 
+      colorspace::lighten(import_colour), 
+      "grey60"
+    ),
+  labels = c("More Exports", "More Imports", "Equal")) +
+  coord_cartesian(xlim = c(2009, 2025), ylim = c(0, 600)) +  # Set axis limits
+  scale_x_continuous(breaks = seq(2010, 2024, 5)) +
+  scale_y_continuous(breaks = seq(0, 600, 100)) +
+  
+  # Annotate CAGR
+  annotate(
+    geom = "curve", 
+    x = 2020.5, y = ye_start + 80, xend = 2024, yend = ye_end + 30, 
+    curvature = -0.3, 
+    arrow = arrow(length = unit(2, "mm")),
+    color = export_colour,
+  ) +
+  annotate(
+    geom = "text", 
+    x = 2018.2, y = ye_end + 15, 
+    label = paste(strwrap(sprintf("Export CAGR increased by %.1f%% from 2020 to 2024", export_cagr), 
+                    width = 20), collapse = "\n"),
+    hjust = "left",
+    size = 3,
+    color = export_colour) +
+
+  annotate(
+    geom = "curve", 
+    x = 2020.5, y = yi_start - 20, xend = 2024, yend = yi_end - 30, 
+    curvature = 0.2, 
+    arrow = arrow(length = unit(2, "mm")),
+    color = import_colour
+  ) +
+  annotate(
+    geom = "text", 
+    x = 2021.5, y = yi_start - 53, 
+    label = paste(strwrap(sprintf("Import CAGR increased by %.1f%% from 2020 to 2024", import_cagr), 
+                    width = 20), collapse = "\n"),
+    size = 3,
+    hjust = "left",
+    color = import_colour) +
+
+
+  labs(
+    title = "Overall Exports and Imports of Services (2010-2024)",
+    subtitle = wrapped_subtitle,
+    caption = "Source: Singstat.gov.sg | Graphic: Vivian Chew",
+    y = "S$ Billion"
+  ) +
+  
+  theme_minimal(base_family = "Helvetica Neue") +
+  theme(
+    # Top-right position
+    # legend.pos = c(0.875, 0.975),
+    legend.position = "bottom",
+    # Elements within a guide are placed one next to the other in the same row
+    legend.direction = "vertical",
+    # Different guides are stacked vertically
+    legend.box = "horizontal",
+    # No legend title
+    legend.title = element_blank(),
+    # Light background color
+    # plot.background = element_rect(fill = "#e2e1dc", color = NA),
+    plot.margin = margin(20, 30, 20, 30),
+    # Customize the title. Note the new font family and its larger size.
+    plot.title = element_text(
+      margin = margin(0, 0, 0, 0), 
+      size = 14, 
+      family = "Helvetica Neue", 
+      face = "bold", 
+      vjust = 1, 
+      color = "grey25"
+    ),
+    plot.caption = element_text(size = 8),
+    # Remove titles for x and y axes.
+    axis.title.x = element_blank(),
+    # Specify color for the tick labels along both axes 
+    axis.text = element_text(color = "grey40"),
+    # Specify face and color for the text on top of each panel/facet
+    strip.text = element_text(face = "bold", color = "grey20")
+  )
+
+girafe(ggobj = p,
+      width_svg = 8,
+      height_svg = 6)
+```
+
+## 3.2 Second Makeover
+### The Original
+![Fig 2a. The second figure we will be making over is a bar chart with some sort of ranking](ref_viz/viz2.png)
+The strengths of this plot lie in the bar representation, which effectively highlights the differences in trade balance across countries. It allows for a clear side-by-side comparison of whether a region is more focused on imports or exports. The change between 2019 and 2023 can also be observed, though it requires some mental effort to assess the changes by region. The inclusion of region flags and category colors enhances the visual appeal and makes the plot easy to scan.
+
+However, the ranking is based on total trade (imports + exports), requiring viewers to mentally calculate the summed values. Additionally, the plot only shows the current rankings, without indicating any shifts in ranking from 2019 to 2023.
+
+In order to visualize the change (trend), and also the ranking. I propose to use a slope graph.
+
+![Fig 2b. Suggested slope graph, where viewers can click on the points to highlight the region of interest. Moreover, the import and export will be displayed on the same scale so we can compare not only the trend but also if it is a region more focused on imports or exports ](ref_viz/sugviz2.png)
+### The Makeover
+```{r}
+#| code-fold: true
+#| code-summary: "Loading the data"
+
+svc_pi <- read_excel('data/sg_svc_trade_by_partners.xlsx',
+                               sheet="import")
+svc_pe <- read_excel('data/sg_svc_trade_by_partners.xlsx',
+                               sheet="export")
+region_mapping <- read_csv('data/region_mapping.csv')
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Data preprocessing"
+
+broad_classification <- c('Asia', 'Europe', 'Africa', 'Oceania', 'ASEAN', 'European Union (EU-27)', 
+                          'North America',
+                          'South And Central America And The Caribbean')
+region_mapping$`Trading Partner` <- region_mapping$`M49 code`
+
+format_svc_partner_df <- function(df, new_df) {
+  new_df <- df %>%
+    filter(!`Trading Partner` %in% broad_classification) %>%
+    mutate(across(2:ncol(df), as.numeric)) %>%
+    left_join(region_mapping %>%
+              select(c(`Regional Blocs`, `Sub Division`, `Continent`, `Trading Partner`))) %>%
+  mutate(`Regional Blocs` = ifelse(is.na(`Regional Blocs`), `Trading Partner`, `Regional Blocs`)) %>%
+  pivot_longer(
+    cols = -c(`Trading Partner`, `Regional Blocs`, `Sub Division`, Continent),  # Exclude identifier columns
+    names_to = "Year",                                           
+    values_to = "SGD (Million)"
+  ) %>%
+  mutate(Year = year(as.Date(paste0(Year, "-01-01"))))
+    
+  return (new_df)
+}
+
+svc_pi_long <- format_svc_partner_df(svc_pi)
+svc_pe_long <- format_svc_partner_df(svc_pe)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Checking top 10 regions by import / export"
+
+svc_pi_2019_2023 <- svc_pi_long %>%
+  group_by(`Regional Blocs`, Year) %>%
+  summarize(Import = sum(`SGD (Million)`/1000, na.rm = TRUE), .groups = "drop") %>%
+  filter(Year %in% c(2019, 2023))
+
+svc_pi_2023_top_10 <- svc_pi_2019_2023 %>%
+  filter(Year == 2023) %>%
+  arrange(desc(Import)) %>%
+  slice(1:10)
+
+svc_pe_2019_2023 <- svc_pe_long %>%
+  group_by(`Regional Blocs`, Year) %>%
+  summarize(Export = sum(`SGD (Million)`/1000, na.rm = TRUE), .groups = "drop") %>%
+  filter(Year %in% c(2019, 2023))
+
+svc_pe_2023_top_10 <- svc_pe_2019_2023 %>%
+  filter(Year == 2023) %>%
+  arrange(desc(Export)) %>%
+  slice(1:10)
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Final top 12 regions for total trade"
+
+comb_svc_p_2019_2023 <- svc_pi_2019_2023 %>% 
+  left_join(svc_pe_2019_2023,
+            by = c("Regional Blocs" = "Regional Blocs", "Year" = "Year")) %>%
+  mutate(`Total Trade` = Import + Export)
+
+top_12_svc_p <- comb_svc_p_2019_2023 %>%
+  filter(Year == 2023) %>%
+  arrange(desc(`Total Trade`)) %>%
+  slice(1:12)
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Slopegraph using plotly"
+#| fig-height: 7
+#| fig-widith: 8
+
+export_colour <- "#73ad00"
+import_colour <- "#3883c9"
+total_colour <- "#f76a80"
+
+# This helped: https://stackoverflow.com/questions/72669786/in-r-how-to-use-plotlys-highlight-function-to-activate-a-ggplot-2-graphic-la
+subset_data <- comb_svc_p_2019_2023 %>%
+                   filter(`Regional Blocs` %in% top_12_svc_p$`Regional Blocs`) %>%
+                   mutate(Region = `Regional Blocs`)
+ranked_data <- subset_data %>% 
+  group_by(Year) %>% 
+  mutate(
+    Import_Rank = rank(-Import, ties.method = "min"),  # Rank by Import (descending)
+    Export_Rank = rank(-Export, ties.method = "min"),  # Rank by Export (descending)
+    Total_Trade_Rank = rank(-`Total Trade`, ties.method = "min")  # Rank by Total Trade (descending)
+  ) %>%
+  ungroup()  
+
+d <- highlight_key(ranked_data, ~Region)
+
+# Their colours are pretty dull. 
+group_colors <- c(
+  "United States Of America" = "#04747c",
+  "European Union (EU-27)" = "#808080",
+  "Mainland China" = "#344f6b",
+  "Japan" = "#d04f65",
+  "ASEAN" = "#6b99bb",
+  "Australia" = "#feab40",
+  "Hong Kong" = "#5c6ac0",
+  "United Kingdom" = "#679f39",
+  "Switzerland" = "#7f3e70",
+  "India" = "#726356",
+  "Taiwan" = "#cfa61d",
+  "Republic Of Korea" = "#9b3d4b"
+)
+
+p1 <- ggplot(data = d,
+       aes(y=Import,
+           x=Year,
+           group = Region,
+           color = Region)) +
+  geom_point(size = 1) +
+  geom_line(aes(group = Region, alpha = 1), size = 0.5) +
+  geom_text(aes(label = Import_Rank),
+            hjust = "left",
+            size = 2.5,
+            nudge_x = 0.1,   # Adjust horizontal position (for plotly)
+            check_overlap = TRUE) +  # Avoid overlapping labels
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    axis.text.x.top = element_text(size=12)
+  ) +
+  coord_cartesian(xlim = c(2018.5, 2023.5), ylim = c(0, 110)) + 
+  scale_x_continuous(breaks = seq(2019, 2023, 4)) +
+  scale_y_continuous(breaks = seq(5, 110, 10)) 
+
+p2 <- ggplot(data = d,
+       aes(y=Export,
+           x=Year,
+           group = Region,
+           color = Region)) +
+  geom_point(size = 1) +
+  geom_line(aes(group = Region, alpha = 1), size = 0.5) +
+  geom_text(aes(label = Export_Rank),
+            hjust = "left",
+            size = 2.5,
+            nudge_x = 0.1,   # Adjust horizontal position (for plotly)
+            check_overlap = TRUE) +  # Avoid overlapping labels
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    axis.text.x.top = element_text(size=12)
+  ) +
+  coord_cartesian(xlim = c(2018.5, 2023.5), ylim = c(0, 110)) + 
+  scale_x_continuous(breaks = seq(2019, 2023, 4)) +
+  scale_y_continuous(breaks = seq(5, 110, 10))
+
+p3 <- ggplot(data = d,
+       aes(y=`Total Trade`,
+           x=Year,
+           group = Region,
+           color = Region)) +
+  geom_point(size = 1) +
+  geom_line(aes(group = Region, alpha = 1), size = 0.5) +
+  geom_text(aes(label = paste0(Total_Trade_Rank," ", Region),
+                y = `Total Trade`),
+            hjust = "left",
+            size = 2.5,
+            nudge_x = 0.1,   # Adjust horizontal position (for plotly)
+            check_overlap = TRUE) +  # Avoid overlapping labels
+  coord_cartesian(xlim = c(2018.5, 2026), ylim = c(0, 160)) +
+  scale_x_continuous(breaks = seq(2019, 2023, 4)) +
+  scale_y_continuous(breaks = seq(5, 160, 15)) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    axis.text.x.top = element_text(size=12)
+  ) 
+
+# Convert to plotly objects
+p1_plotly <- ggplotly(p1) 
+p2_plotly <- ggplotly(p2)
+p3_plotly <- ggplotly(p3) 
+
+rephrase_hovertext <- function(txt) {
+  txt <- sub("^((.*?<br />){2}.*?)(<br />.*)*$", "\\1", txt)
+  txt <- gsub(":\\s+", ": ", txt)  # Ensure only one space after colon
+
+  # Extract Year, Mode (Import/Export), Value, and Region
+  txt <- sub("Year: (\\d+)<br />([^:]+): ([0-9\\.]+)\\s*<br />Region: (.+)", 
+             "In <b>\\1</b>, the \\2 was <b>S$ \\3 billion</b> from <b>\\4</b>", txt)
+
+  # Round numbers to one decimal place if needed
+  txt <- gsub("([0-9]+\\.[0-9]{1})[0-9]*", "\\1", txt)
+  return (txt)
+}
+
+replace_p_trace <- function(plotly_object) {
+  for (i in rev(seq_along(plotly_object$x$data))) {
+    # Check if the trace has mode = "markers"
+    if (!is.null(plotly_object$x$data[[i]]$mode) && plotly_object$x$data[[i]]$mode == "markers") {
+      # Get the marker color
+      c <- plotly_object$x$data[[i]]$marker$color
+      # Add lines to the trace
+      plotly_object$x$data[[i]]$line <- list(
+        width = 1.889764,  # Set line width
+        color = sub("\\d+(\\.\\d+)?\\)$", "0.55)", c), # Use marker color for the line, keeping the same opacity
+        dash = "solid"     # Set line style to solid
+      )
+      # Change mode to "markers+lines"
+      plotly_object$x$data[[i]]$mode <- "markers+lines"
+      plotly_object$x$data[[i]]$text[[1]] <- rephrase_hovertext(plotly_object$x$data[[i]]$text[[1]])
+      plotly_object$x$data[[i]]$text[[2]] <- rephrase_hovertext(plotly_object$x$data[[i]]$text[[2]])
+    }
+    # Check if the trace has mode = "lines"
+    if (!is.null(plotly_object$x$data[[i]]$mode) && plotly_object$x$data[[i]]$mode == "lines") {
+      # Remove the entire trace
+      plotly_object$x$data[[i]] <- NULL
+      }
+    for (j in seq_along(plotly_object$x$data[[i]]$hovertext)) {
+        plotly_object$x$data[[i]]$hovertext[[j]] <- rephrase_hovertext(plotly_object$x$data[[i]]$hovertext[[j]])
+    }
+    trace_color <- plotly_object$x$data[[i]]$textfont$color
+    
+    # Set hoverlabel bgcolor to match trace color
+    plotly_object$x$data[[i]]$hoverlabel <- list(
+      bgcolor = trace_color,  # Match trace color
+      font = list(color = "black", size = 12)  # Customize font
+    )
+  }
+  return (plotly_object)
+}
+
+p1_plotly <- replace_p_trace(p1_plotly)
+p2_plotly <- replace_p_trace(p2_plotly)
+p3_plotly <- replace_p_trace(p3_plotly)
+  
+# For p1 and p2
+adjust_p_text <- function(plotly_object) {
+  for (i in rev(seq_along(plotly_object$x$data))) {
+    if (!is.null(plotly_object$x$data[[i]]$mode) && plotly_object$x$data[[i]]$mode == "text") {
+      plotly_object$x$data[[i]]$x[[1]] <- plotly_object$x$data[[i]]$x[[1]] - 0.4  # Shift left
+      plotly_object$x$data[[i]]$x[[2]] <- plotly_object$x$data[[i]]$x[[2]] + 0.1  # Shift right
+    }
+  }
+  return (plotly_object)
+}
+
+p1_plotly <- adjust_p_text(p1_plotly)
+p2_plotly <- adjust_p_text(p2_plotly)
+
+for (i in rev(seq_along(p3_plotly$x$data))) {
+  if (!is.null(p3_plotly$x$data[[i]]$mode) && p3_plotly$x$data[[i]]$mode == "text") {
+    if (any(grepl("Republic Of Korea", p3_plotly$x$data[[i]]$text[[1]]))) {
+      p3_plotly$x$data[[i]]$y[[2]] <- p3_plotly$x$data[[i]]$y[[2]] - 3
+    }
+   if (any(grepl("Mainland China", p3_plotly$x$data[[i]]$text[[1]]))) {
+      p3_plotly$x$data[[i]]$y[[2]] <- p3_plotly$x$data[[i]]$y[[2]] + 1
+   }
+    p3_plotly$x$data[[i]]$x[[1]] <- p3_plotly$x$data[[i]]$x[[1]] - 0.5  # Shift left
+    p3_plotly$x$data[[i]]$text[[1]] <- str_extract(p3_plotly$x$data[[i]]$text[[1]], "\\d+")
+    p3_plotly$x$data[[i]]$textposition <- "right"
+  }
+}
+
+title <- "Major Trading Partners for Trade In Services"
+subtitle <- "The slopegraph illustrates the changes in services trade with Singapore’s top 12 trading partners."
+subtitle2 <- "Click on the points and region names to highlight specific countries and regions."
+
+subplot(p2_plotly, p1_plotly, p3_plotly, nrows = 1, 
+        shareX = TRUE,
+        widths = c(0.3, 0.3, 0.4)) %>%
+  highlight(on = 'plotly_click', off = 'plotly_doubleclick', 
+            opacityDim = .25) %>%
+layout(
+  margin = list(b = 50),
+  title = list(
+      text = sprintf("<b>%s</b>", title),  # Title
+      font = list(family = "Helvetica Neue", size = 18, color = "black"),  # Title font
+      x = 0.02,  # Position title (0 = left, 1 = right)
+      y = 1   # Position title (0 = bottom, 1 = top)
+    ),
+  annotations = list( 
+    list(x = 0 , y = 1.015, text = subtitle, showarrow = F, 
+         xref='paper', yref='paper',
+         font = list(color = "black")
+         ), 
+      list(x = 0 , y = 0.99, text = subtitle2, showarrow = F, 
+         xref='paper', yref='paper',
+         font = list(color = "black")
+         ), 
+    list(x = 0.02 , y = 0.93, text = "Exports", showarrow = F, 
+         xref='paper', yref='paper',
+         font = list(color = "white"),
+         bgcolor = export_colour,
+         bordercolor = export_colour, 
+         borderpad = 8,  
+         borderwidth = 1.5
+         ), 
+    list(x = 0.35 , y = 0.93, text = "Imports", showarrow = F, 
+         xref='paper', yref='paper',
+         font = list(color = "white"),
+         bgcolor = import_colour,
+         bordercolor = import_colour, 
+         borderpad = 8,  
+         borderwidth = 1.5
+         ), 
+    list(x = 0.72 , y = 0.93, text = "Total Trade", showarrow = F, 
+         xref='paper', yref='paper',
+         font = list(color = "white"),
+         bgcolor = total_colour,
+         bordercolor = total_colour,  
+         borderpad = 8, 
+         borderwidth = 1.5
+         ), 
+    list(x = 1 , y = -0.05, text = "Data Source: Singstat.gov.sg | Graphic: Vivian Chew", showarrow = F, 
+         xref='paper', yref='paper',
+         font = list(color = "darkgray", size = 12)
+         )), 
+  font = list(family = "Helvetica Neue", size = 14, color = "black")
+  ) 
+```
+
+Instead of labelling the values as shown in the draft. I labelled the ranking instead, so we don't have to manually count what position the country is ranked. We can also clearly see the change in ranking. If the values are needed, the viewer can just hover over to look at it.
+
+## 3.3 Third Makeover
+
+### The Original
+
+![Fig 3a. The third figure we will be making over is a donut chart](ref_viz/viz3.png)
+The strengths of the chart lie in the use of distinct colors, which effectively differentiate the various groups. Additionally, the clear and concise labels make it easy to identify the proportions. However, a drawback is the excessive number of groups, which causes some sections of the pie to be unclear.
+
+While the designer has done a good job in conveying the proportions, I would suggest extending the visualization to highlight trends over time, given that this is a time-series challenge. A streamplot could be an effective way to display the changes in proportions over time, providing a clearer view of how the data evolves.
+
+![Fig 3b. Suggested streamplot, if possible, or a stacked area plot](ref_viz/sugviz3.png)
+For the actual implementation, a stacked area plot was used instead of a streamplot. This was because the trend shows a general increase, and a streamplot may not be the best choice in this case, as it could introduce unnecessary artifacts in the data representation. The stacked area plot provides a clearer and more straightforward visualization of the trend.
+
+### The Makeover
+
+```{r}
+#| code-fold: true
+#| code-summary: "Data preprocessing"
+
+svc_trade_by_cat <- svc_trade_long %>%
+  mutate(
+    `Major Category` = if_else(
+      `Major Category` == "Government Goods And Services",
+      "Other Business Services",
+      `Major Category`)) %>%
+  group_by(`Major Category`, `Trade Type`, Year) %>%
+  summarize(`SGD` = sum(`SGD (Million)`/1000, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(`Major Category` = as.factor(`Major Category`))
+
+category_mapping <- c(
+  "Transport" = "Transport",
+  "Other Business Services" = "Other Biz",
+  "Financial" = "Financial",
+  "Telecommunications, Computer & Information" = "Telecom & IT",
+  "Travel" = "Travel",
+  "Charges For The Use Of Intellectual Property" = "Intellectual Prop",
+  "Insurance" = "Insurance",
+  "Maintenance And Repair Services" = "Maintenance",
+  "Manufacturing Services On Physical Inputs Owned By Others" = "Manufacturing",
+  "Personal, Cultural And Recreational" = "Personal & Cultural",
+  "Construction" = "Construction"
+)
+
+svc_trade_by_cat <- svc_trade_by_cat %>%
+  mutate(`Major Category` = recode(`Major Category`, !!!category_mapping))
+
+# Getting the order for the hierarchy of the plot
+order <- svc_trade_by_cat %>% filter(Year == 2024) %>% 
+  group_by(`Major Category`) %>% 
+  summarize(Total = sum(`SGD`, na.rm = TRUE)) %>%
+  arrange(desc(`Total`))
+order <- order$`Major Category`
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Getting text annotation positions"
+
+# For annotation of the text points. In the end the values are manipulated in the last array, but the base values
+# were defined from this set of code.
+svc_trade_export_val_2024 <- svc_trade_by_cat %>%
+  filter(Year == 2024 & `Trade Type` == 'Export') %>%
+  mutate(`Major Category` = factor(`Major Category`, levels = order)) %>%
+  arrange(desc(`Major Category`)) %>% 
+  mutate(Cumulative_Sum = cumsum(`SGD`)) %>%
+  arrange(`Major Category`)
+svc_trade_export_val_2024$Roll <- rollmean(svc_trade_export_val_2024$Cumulative_Sum, 
+                                           k = 2, fill = svc_trade_export_val_2024$Cumulative_Sum[[1]], 
+                                           align = "right")
+svc_trade_export_val_2024$Roll <- svc_trade_export_val_2024$Roll * 1.1
+svc_trade_export_val_2024$Roll <- c(581.42513, 466.29103, 286.52903, 172.53065, 140.52777, 110.36837, 
+                                    90.40066, 70.00528, 50.09414, 30.88403, 10.96793)
+
+svc_trade_import_val_2024 <- svc_trade_by_cat %>%
+  filter(Year == 2024 & `Trade Type` == 'Import') %>%
+  mutate(`Major Category` = factor(`Major Category`, levels = order)) %>%
+  arrange(desc(`Major Category`)) %>% 
+  mutate(Cumulative_Sum = cumsum(`SGD`)) %>%
+  arrange(`Major Category`)
+svc_trade_import_val_2024$Roll <- rollmean(svc_trade_import_val_2024$Cumulative_Sum, 
+                                           k = 2, fill = svc_trade_import_val_2024$Cumulative_Sum[[1]], 
+                                           align = "right")
+svc_trade_import_val_2024$Roll <- svc_trade_import_val_2024$Roll * 1.1
+svc_trade_import_val_2024$Roll <- c(516.099650, 406.992280, 225.728440, 160.798055, 124.086435, 
+                                    105.163955,  88.944805,  68.877570,  48.004660,  28.538805, 10.112220)
+```
+
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Plotting the graph with ggstream"
+#| fig-height: 9
+#| fig-width: 11
+
+# Inspired from https://r-graph-gallery.com/web-stacked-area-chart-inline-labels.html
+
+pal <- c('#5c6ac0', '#bd76ac', '#8c6238', '#35506a', '#6d98bb', '#ff718b', 
+  '#9b3d4b', '#04abc1', '#7ecc6b','#349098', '#feab40', '#cfa61d')
+
+# Convert hex colors to RGB values
+rgb_values <- col2rgb(pal)
+
+# Extract the red component and order the colors by red value
+sorted_pal <- pal[order(rgb_values[1, ], decreasing = TRUE)]
+
+# Display the sorted palette
+gradient_pal <- colorRampPalette(sorted_pal)
+grad_colors <- gradient_pal(23)
+
+slp1 <- svc_trade_by_cat %>% filter(Year > 2014 & `Trade Type` == 'Export') %>%
+  mutate(`Major Category` = factor(`Major Category`, levels=order)) %>% 
+  ggplot(aes(x = Year, 
+             y = `SGD`, 
+             fill = `Major Category`, 
+             label = `Major Category`, 
+             color = `Major Category`)) +
+  geom_stream(type = "ridge", bw=1) +
+  theme_minimal() +
+  scale_fill_manual(values=grad_colors) +
+  scale_color_manual(values=grad_colors) +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  ) +
+  scale_x_continuous(breaks=c(2015, 2020, 2024),labels = c("2015","2020","2024")) +
+  scale_y_continuous(expand = c(0,0)) +
+  coord_cartesian(xlim = c(2015, 2027), ylim = c(0, 950)) +
+  geom_text(
+    data = svc_trade_export_val_2024,
+    aes(x = 2024, y = `Roll`, label = paste0(`Major Category`, " S$ ", round(`SGD`, 1), " B")),  # Place labels to the left of the plot
+    hjust = 0,  # Right-align text
+    size = 2.5,  # Adjust text size
+    nudge_x = 0.1,
+  ) +
+  annotate("text", x = 2015, y = 700,
+           label = "Exports",
+           hjust=0,
+           size=10,
+           lineheight=.9,
+           fontface="bold", family="Helvetica Neue",
+           color="black") +
+  geom_segment(aes(x = 2015, y = 0, xend = 2015, yend = 211 + 180),color="black") +
+  geom_point(aes(x = 2015, y = 211 + 180),color="black") +
+  annotate("text", x = 2015, y = 211 + 200,
+           label = "S$ 211 B",
+           hjust=0.5,
+           size=3,
+           lineheight=.8,
+           fontface="bold",family="Helvetica Neue",
+           color="black") +
+  
+  geom_segment(aes(x = 2020, y = 0, xend = 2020, yend = 300 + 180),color="black") +
+  geom_point(aes(x = 2020, y = 300 + 180),color="black") +
+  annotate("text", x = 2020, y = 300 + 200,
+           label = "S$ 300 B",
+           hjust=0.5,
+           size=3,
+           lineheight=.8,
+           fontface="bold",family="Helvetica Neue",
+           color="black") +
+
+  geom_segment(aes(x = 2024, y = 0, xend = 2024, yend = 529 + 350),color="black") +
+  geom_point(aes(x = 2024, y = 529 + 350), color="black") +
+  annotate("text", x = 2024, y = 529 + 370,
+           label = "S$ 529 B",
+           hjust=1.1,
+           size=3,
+           lineheight=.8,
+           fontface="bold",family="Helvetica Neue",
+           color="black")
+
+slp2 <- svc_trade_by_cat %>% filter(Year > 2014 & `Trade Type` == 'Import') %>%
+  mutate(`Major Category` = factor(`Major Category`, levels=order)) %>% 
+  ggplot(aes(x = Year, 
+             y = `SGD`, 
+             fill = `Major Category`, 
+             label = `Major Category`, 
+             color = `Major Category`)) +
+  geom_stream(type = "ridge", bw=1) +
+  theme_minimal() +
+  scale_fill_manual(values=grad_colors) +
+  scale_color_manual(values=grad_colors) +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  ) +
+  scale_x_continuous(breaks=c(2015, 2020, 2024),labels = c("2015","2020","2024")) +
+  scale_y_continuous(expand = c(0,0)) +
+  coord_cartesian(xlim = c(2015, 2027), ylim = c(0, 950)) +
+  geom_text(
+    data = svc_trade_import_val_2024,
+    aes(x = 2024, y = `Roll`, label = paste0(`Major Category`, " S$ ", round(`SGD`, 1), " B")),
+    hjust = 0,  # Right-align text
+    size = 2.5,  # Adjust text size
+    nudge_x = 0.1,
+  ) +
+  annotate("text", x = 2015, y = 700,
+           label = "Imports",
+           hjust=0,
+           size=10,
+           lineheight=.9,
+           fontface="bold", family="Helvetica Neue",
+           color="black") +
+  geom_segment(aes(x = 2015, y = 0, xend = 2015, yend = 222 + 180),color="black") +
+  geom_point(aes(x = 2015, y = 222 + 180),color="black") +
+  annotate("text", x = 2015, y = 222 + 200,
+           label = "S$ 222 B",
+           hjust=0.5,
+           size=3,
+           lineheight=.8,
+           fontface="bold",family="Helvetica Neue",
+           color="black") +
+  
+  geom_segment(aes(x = 2020, y = 0, xend = 2020, yend = 290 + 180),color="black") +
+  geom_point(aes(x = 2020, y = 290 + 180),color="black") +
+  annotate("text", x = 2020, y = 290 + 200,
+           label = "S$ 290 B",
+           hjust=0.5,
+           size=3,
+           lineheight=.8,
+           fontface="bold",family="Helvetica Neue",
+           color="black") +
+
+  geom_segment(aes(x = 2024, y = 0, xend = 2024, yend = 469 + 350),color="black") +
+  geom_point(aes(x = 2024, y = 469 + 350), color="black") +
+  annotate("text", x = 2024, y = 469 + 370,
+           label = "S$ 469 B",
+           hjust=1.1,
+           size=3,
+           lineheight=.8,
+           fontface="bold",family="Helvetica Neue",
+           color="black")
+
+combined_plot <- slp1 + slp2
+
+# Add a global title
+combined_plot <- combined_plot +
+  plot_annotation(
+    title = "Trade of Services By Services Category (2015 - 2024)",
+    subtitle = "The stacked area chart shows the proportion of services trade by category over the years.",
+    theme = theme(plot.title = element_text(size = 16, face = "bold", family="Helvetica Neue")),
+    caption = "Data Source: Singstat.gov.sg | Graphic: Vivian Chew"
+  )
+
+combined_plot
+```
+
+
+
+# 4 Time Series Analysis
+
+```{r}
+merch_import_comm <- read_excel("data/sg_merchandise_trade_commodities_monthly.xlsx",
+                             sheet = "import")
+merch_dexport_comm <- read_excel("data/sg_merchandise_trade_commodities_monthly.xlsx",
+                             sheet = "dexport")
+merch_rexport_comm <- read_excel("data/sg_merchandise_trade_commodities_monthly.xlsx",
+                             sheet = "rexport")
+```
+
+```{r}
+trade_type <- c("Import", "Domestic Export", "Re Export")
+df_list <- list(merch_import_comm, merch_dexport_comm, merch_rexport_comm)
+transformed_dfs <- list()
+
+for (i in seq_along(df_list)) {
+  transformed_dfs[[i]] <- df_list[[i]][, 1:302] %>%  # Only until Jan 2000
+    pivot_longer(cols = -Division, names_to = "Date", values_to = "Dollars") %>%
+    mutate(Date = as.Date(paste0(Date, " 01"), format = "%Y %b %d")) %>%
+    mutate(`Trade Type` = trade_type[i])
+}
+merch_trade_comm <- bind_rows(transformed_dfs)
+```
+
+
+```{r}
+top_10_imports <- data.frame(
+  Division = merch_import_comm[, 1],
+  Total = rowSums(merch_import_comm[, 3:13], na.rm = TRUE)
+) %>%
+  arrange(desc(Total)) %>%
+  slice(1:10)
+
+top_10_imports$Division
+```
+
+```{r}
+top_10_dexports <- data.frame(
+  Division = merch_dexport_comm[, 1],
+  Total = rowSums(merch_dexport_comm[, 3:13], na.rm = TRUE)
+) %>%
+  arrange(desc(Total)) %>%
+  slice(1:10)
+
+top_10_dexports$Division
+```
+
+```{r}
+group_df <- merch_trade_comm %>%
+  filter(Division %in% top_10_imports$Division) %>%
+  mutate(Division = as.integer(as.factor(Division))) %>%
+  group_by(Division, Date) %>%
+  summarize(Total = sum(Dollars, na.rm = TRUE), .groups = "drop") %>%
+  mutate(Date = yearmonth(Date)) %>%
+  as_tsibble(key = Division, index = Date)
+```
+
+```{r}
+group_df %>% autoplot(Total)
+```
+
+```{r}
+merch_trade_data <- read_csv("data/merch_trade_current_prices.csv")
+```
+
+# 5 References
+
+1.  https://en.wikipedia.org/wiki/First_Trump_tariffs
+2. https://www.singstat.gov.sg/modules/infographics/singapore-international-trade
+3. Lineplot - https://r-graph-gallery.com/web-time-series-and-facetting.html 
+4. ggiraph interactivity - https://www.ardata.fr/ggiraph-book/
+5. Slopegraph - https://ibecav.github.io/slopegraph/
+6. Slopegraph plotly - https://stackoverflow.com/questions/72669786/in-r-how-to-use-plotlys-highlight-function-to-activate-a-ggplot-2-graphic-la 
+7. Stacked area plot - https://r-graph-gallery.com/web-stacked-area-chart-inline-labels.html 
+8. Time series analysis and forecasting - https://otexts.com/fpp3/ 
+

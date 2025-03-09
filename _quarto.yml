@@ -48,6 +48,9 @@ website:
     contents: 
       - href: take-home/exercise01.qmd
         text: Exercise 01
+      - href: take-home/exercise02.qmd
+        text: Exercise 02
+        
       
   - id: in-class
     title: "In-class Exercises"
@@ -58,6 +61,8 @@ website:
         text: Exercise 04
       - href: in-class/exercise05.qmd
         text: Exercise 05
+      - href: in-class/exercise07.qmd
+        text: Exercise 07
       
 format:
   html:
