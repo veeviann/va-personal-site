@@ -53,19 +53,24 @@ The **merchandise trade dataset**, which provides monthly trade data, is more ap
 #| code-fold: true
 #| code-summary: "Loading the relevant packages"
 pacman::p_load(
-  readxl,       # Reading Excel files
-  tidyverse,    # Data manipulation and visualization
+  colorspace,   # Advanced color palettes
+  fpp3,         # Time series analysis
+  fracdiff,     # Fractionally differenced ARIMA models
   geofacet,     # Geofaceted visualizations
+  GGally,       # Extensions to ggplot2, including pairwise plots
+  ggalt,        # Alternative geoms (e.g., xspline for smooth edges)
   ggh4x,        # Enhancements for ggplot2 (e.g., stat_difference for filled areas)
   ggiraph,      # Interactive ggplot2 visualizations
+  ggstream,     # Stream plots
+  glue,         # String interpolation and manipulation
+  knitr,        # Dynamic report generation with R Markdown
   lubridate,    # Date and time handling
-  ggalt,        # Alternative geoms (e.g., xspline for smooth edges)
   patchwork,    # Combining multiple ggplot2 plots
   plotly,       # Interactive plots
-  colorspace,   # Advanced color palettes
-  zoo,          # Rolling mean and time series operations
-  ggstream,     # Stream plots
-  fpp3          # Time series analysis
+  readxl,       # Reading Excel files
+  tidyverse,    # Data manipulation and visualization
+  urca,         # Unit root and cointegration tests
+  zoo           # Rolling mean and time series operations
 )
 ```
 
@@ -73,16 +78,21 @@ pacman::p_load(
 | -------------- | ------------------------------------------------------------------------------- |
 | **colorspace** | Provides advanced color palettes and manipulation tools for visualizations.     |
 | **fpp3**       | A collection of tools for time series analysis and forecasting.                 |
+| **fracdiff**   | Implements fractionally differenced ARIMA models for time series.               |
 | **geofacet**   | Creates geofaceted visualizations for spatial data.                             |
+| **GGally**     | Enhances ggplot2 with extensions like pairwise plots (GGpairs).                 |
 | **ggalt**      | Provides alternative geoms, including xspline for smoother line edges.          |
 | **ggh4x**      | Extends ggplot2 with additional features like stat_difference for filled areas. |
 | **ggiraph**    | Enables interactive ggplot2 visualizations with tooltips and hover effects.     |
 | **ggstream**   | Generates stream plots to visualize time-based category proportions.            |
+| **glue**       | Provides an easy way to interpolate and manipulate strings.                     |
+| **knitr**      | Facilitates dynamic report generation, especially with R Markdown.              |
 | **lubridate**  | Simplifies working with dates and times in R.                                   |
 | **patchwork**  | Makes it easy to combine multiple ggplot2 plots into a single layout.           |
 | **plotly**     | Converts ggplot2 plots into interactive visualizations.                         |
 | **readxl**     | Reads Excel files into R efficiently.                                           |
 | **tidyverse**  | A collection of packages for data manipulation, visualization, and analysis.    |
+| **urca**       | Performs unit root and cointegration tests for time series analysis.            |
 | **zoo**        | Provides functions for rolling means and time series operations.                |
 
 ## 2.2 Data Source
@@ -776,6 +786,11 @@ layout(
 
 Instead of labelling the values as shown in the draft. I labelled the ranking instead, so we don't have to manually count what position the country is ranked. We can also clearly see the change in ranking. If the values are needed, the viewer can just hover over to look at it.
 
+Also note that:
+
+- ASEAN includes Brunei Darussalam, Cambodia, Indonesia, Lao People's Democratic Republic, Malaysia, Myanmar, Philippines, Thailand and Vietnam.
+- The European Union (EU-27) comprises Austria, Belgium, Bulgaria, Croatia, Cyprus, Czech Rep, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania, Luxembourg, Malta, Netherlands, Poland, Portugal, Romania, Slovak Rep, Slovenia, Spain and Sweden.
+
 ## 3.3 Third Makeover
 
 ### The Original
@@ -786,7 +801,7 @@ The strengths of the chart lie in the use of distinct colors, which effectively 
 While the designer has done a good job in conveying the proportions, I would suggest extending the visualization to highlight trends over time, given that this is a time-series challenge. A streamplot could be an effective way to display the changes in proportions over time, providing a clearer view of how the data evolves.
 
 ![Fig 3b. Suggested streamplot, if possible, or a stacked area plot](ref_viz/sugviz3.png)
-For the actual implementation, a stacked area plot was used instead of a streamplot. This was because the trend shows a general increase, and a streamplot may not be the best choice in this case, as it could introduce unnecessary artifacts in the data representation. The stacked area plot provides a clearer and more straightforward visualization of the trend.
+For the actual implementation, a stacked area plot was used instead of a streamplot. This was because the trend shows a general increase, and a streamplot may not be the best choice in this case, as it could introduce unnecessary artifacts in the data representation. The stacked area plot provides a clearer and more straightforward visualization of the trend. The Government services category was also combined with the Other Business Services category as it constitutes the lowest proportion. The merging was done to reduce the number of categories.
 
 ### The Makeover
 
@@ -1043,16 +1058,20 @@ combined_plot
 
 # 4 Time Series Analysis
 
+## 4.1 Data Processing & Exploration
+
 ```{r}
+#| code-fold: true
+#| code-summary: "Data processing"
+
 merch_import_comm <- read_excel("data/sg_merchandise_trade_commodities_monthly.xlsx",
                              sheet = "import")
 merch_dexport_comm <- read_excel("data/sg_merchandise_trade_commodities_monthly.xlsx",
                              sheet = "dexport")
 merch_rexport_comm <- read_excel("data/sg_merchandise_trade_commodities_monthly.xlsx",
                              sheet = "rexport")
-```
+merch_trade_by_region <- read_csv("data/merch_trade_by_region.csv")
 
-```{r}
 trade_type <- c("Import", "Domestic Export", "Re Export")
 df_list <- list(merch_import_comm, merch_dexport_comm, merch_rexport_comm)
 transformed_dfs <- list()
@@ -1060,7 +1079,7 @@ transformed_dfs <- list()
 for (i in seq_along(df_list)) {
   transformed_dfs[[i]] <- df_list[[i]][, 1:302] %>%  # Only until Jan 2000
     pivot_longer(cols = -Division, names_to = "Date", values_to = "Dollars") %>%
-    mutate(Date = as.Date(paste0(Date, " 01"), format = "%Y %b %d")) %>%
+    mutate(Date = yearmonth(as.Date(paste0(Date, " 01"), format = "%Y %b %d"))) %>%
     mutate(`Trade Type` = trade_type[i])
 }
 merch_trade_comm <- bind_rows(transformed_dfs)
@@ -1068,6 +1087,9 @@ merch_trade_comm <- bind_rows(transformed_dfs)
 
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Showing the top 10 imports"
+#
 top_10_imports <- data.frame(
   Division = merch_import_comm[, 1],
   Total = rowSums(merch_import_comm[, 3:13], na.rm = TRUE)
@@ -1075,10 +1097,13 @@ top_10_imports <- data.frame(
   arrange(desc(Total)) %>%
   slice(1:10)
 
-top_10_imports$Division
+kable(top_10_imports, caption = "Top 10 Imports by Division", align = "c")
 ```
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Showing the top 10 domestic exports"
+
 top_10_dexports <- data.frame(
   Division = merch_dexport_comm[, 1],
   Total = rowSums(merch_dexport_comm[, 3:13], na.rm = TRUE)
@@ -1086,26 +1111,418 @@ top_10_dexports <- data.frame(
   arrange(desc(Total)) %>%
   slice(1:10)
 
-top_10_dexports$Division
+kable(top_10_dexports, caption = "Top 10 Domestic Exports by Division", align = "c")
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Showing the top 10 re-exports"
+
+top_10_rexports <- data.frame(
+  Division = merch_rexport_comm[, 1],
+  Total = rowSums(merch_rexport_comm[, 3:13], na.rm = TRUE)
+) %>%
+  arrange(desc(Total)) %>%
+  slice(1:10)
+
+kable(top_10_rexports, caption = "Top 10 Re-Exports by Division", align = "c")
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Data processing - by region"
+
+merch_trade_region_long <- merch_trade_by_region %>%
+  pivot_longer(
+    cols = -c(Region, Continent, `Trade Type`),  # Exclude these columns
+    names_to = "Date", 
+    values_to = "Dollars"
+  ) %>%
+  mutate(Date = yearmonth(as.Date(paste0(Date, " 01"), format = "%Y %b %d")))
 ```
 
 ```{r}
-group_df <- merch_trade_comm %>%
+#| code-fold: true
+#| code-summary: "Top merchandise trade by region"
+
+top_merch_trade_by_country <- merch_trade_region_long %>%
+  filter(year(Date) == 2024) %>%
+  group_by(Region, Continent) %>% 
+  summarize(Total_Dollars = sum(Dollars, na.rm = TRUE)) %>%  
+  ungroup() %>%
+  arrange(desc(Total_Dollars))
+
+top_merch_trade_by_country_20 <- top_merch_trade_by_country %>%
+  slice(1:20)
+
+kable(top_merch_trade_by_country_20, caption = "Top 20 Total Merchandise Trade by Country in 2024", align = "c")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Selected regions"
+
+selected_regions <- c("China", "United States", "Malaysia", 
+                      "Taiwan", "Canada", "Australia", "Germany",
+                      "France", "Korea, Rep Of")
+```
+
+China, the US, Canada, and Australia were selected due to their involvement in trade tensions following Trump’s tariffs, particularly China, which was the primary target. Canada was affected by steel and aluminum tariffs, while Australia, though largely exempt, remains a key trade partner of the US. Germany and France were included to represent the EU, which faced tariffs on steel and other goods, though the UK, despite higher trade flows, was excluded as it is no longer part of the EU. Malaysia Taiwan and Korea were chosen due to their position among the top few merchandise trade partners of Singapore.
+
+## 4.2 Time Series Patterns - By Trade Regions
+
+::: {.panel-tabset}
+
+### Using ggplot
+
+This plot is preferred over using autoplot.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Plot time series using ggplot"
+#| fig-height: 6
+#| fig-width: 12
+
+merch_trade_region_long %>%
+  filter(year(Date) > 2009) %>%
+  as_tsibble(key = c(Region, `Trade Type`), index = Date) %>%
+  filter(Region %in% selected_regions) %>%
+  ggplot(aes(x = Date, y = Dollars, color = `Trade Type`)) +
+  geom_line() +
+  facet_wrap(~ Region, scales = "free_y", ncol = 3) +
+  labs(
+    title = "Monthly Merchandise Trade Flow of Selected Countries (2010 - 2024)",
+    x = "Date",
+    y = "Dollars"
+  )
+```
+
+- China, Malaysia, Taiwan, and Korea show strong import growth (green) post-2020, with a sharp peak in imports from Taiwan and Korea between 2022-2023. This aligns with trends in specific merchandise categories like “Electrical Machinery & Parts” and “Gas,” which also spike during the same period (The plot is below). Given Taiwan and Korea’s role in semiconductors and electronics, this surge likely reflects increased demand for electronic components and supply chain adjustments during the post-pandemic recovery.
+- Re-Exports (blue) have grown for Germany, China, and US, reflecting Singapore’s role as a trade hub.
+- Domestic exports (red) remain relatively stable across most countries, though China and the US show gradual increases.
+- The US-China trade war trend isn’t immediately obvious in the chart, as there’s no clear dip or disruption around 2018-2019.
+
+### Using autoplot
+
+It's difficult to see because there's too many points on the legend.
+```{r}
+#| code-fold: true
+#| code-summary: "Using autoplot"
+#| fig-height: 6
+#| fig-width: 12
+
+merch_trade_region_long %>%
+  filter(year(Date) > 2009) %>%
+  as_tsibble(key = c(Region, `Trade Type`), index = Date) %>%
+  filter(Region %in% selected_regions) %>%
+  autoplot(Dollars) + facet_wrap(~ Region, scales = "free_y" , ncol = 3) +
+  ggtitle("Monthly Merchandise Trade Flow Selected Countries (2010 - 2024)")
+```
+
+:::
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Checking by import category division"
+#| fig-height: 5
+#| fig-width: 16
+
+merch_trade_comm %>%
   filter(Division %in% top_10_imports$Division) %>%
-  mutate(Division = as.integer(as.factor(Division))) %>%
-  group_by(Division, Date) %>%
-  summarize(Total = sum(Dollars, na.rm = TRUE), .groups = "drop") %>%
-  mutate(Date = yearmonth(Date)) %>%
-  as_tsibble(key = Division, index = Date)
+  filter(year(Date) > 2009) %>%
+  as_tsibble(key = c(Division, `Trade Type`), index = Date) %>%
+  ggplot(aes(x = Date, y = Dollars, color = `Trade Type`)) +
+  geom_line() +
+  facet_wrap(~ Division, scales = "free_y", ncol = 5) +
+  labs(
+    title = "Monthly Merchandise Trade Flow of Selected Divisions (2010 - 2024)",
+    x = "Date",
+    y = "Dollars"
+  )
 ```
 
+## 4.2 Seasonal Plots
+
+The plots above don’t seem to show any clear seasonal patterns, but for the sake of the analysis, let’s investigate further.
+
+::: {.panel-tabset}
+
+### Imports
 ```{r}
-group_df %>% autoplot(Total)
+#| code-fold: true
+#| code-summary: "seasonality plots"
+#| fig-height: 12
+#| fig-width: 8
+
+merch_trade_region_long |> 
+  filter(`Trade Type` == "Import" & year(Date) > 2014) |>
+  as_tsibble(key = Region, index = Date) |>
+  filter(Region %in% selected_regions) |> 
+  gg_season(Dollars, period="year", labels = "both") +
+  theme(legend.position = "none") +
+  ggtitle("Seasonal Plot: Monthly Merchandise Imports of Selected Countries (2015 - 2024)")
 ```
 
+### Domestic Exports
 ```{r}
-merch_trade_data <- read_csv("data/merch_trade_current_prices.csv")
+#| code-fold: true
+#| code-summary: "seasonality plots"
+#| fig-height: 12
+#| fig-width: 8
+
+merch_trade_region_long |> 
+  filter(`Trade Type` == "Domestic Export" & year(Date) > 2014) |>
+  as_tsibble(key = Region, index = Date) |>
+  filter(Region %in% selected_regions) |> 
+  gg_season(Dollars, period="year", labels = "both") +
+  theme(legend.position = "none") +
+  ggtitle("Seasonal Plot: Monthly Merchandise Domestic Exports of Selected Countries (2015 - 2024)")
 ```
+
+### Re-Exports
+```{r}
+#| code-fold: true
+#| code-summary: "seasonality plots"
+#| fig-height: 12
+#| fig-width: 8
+
+merch_trade_region_long |> 
+  filter(`Trade Type` == "Re-Export" & year(Date) > 2014) |>
+  as_tsibble(key = Region, index = Date) |>
+  filter(Region %in% selected_regions) |> 
+  gg_season(Dollars, period="year", labels = "both") +
+  theme(legend.position = "none") +
+  ggtitle("Seasonal Plot: Monthly Merchandise Re-Exports of Selected Countries (2015 - 2024)")
+```
+:::
+
+::: {.panel-tabset}
+
+### Imports
+```{r}
+#| code-fold: true
+#| code-summary: "seasonality subseries"
+
+merch_trade_region_long |> 
+  filter(`Trade Type` == "Import" & year(Date) > 2014) |>
+  as_tsibble(key = Region, index = Date) |>
+  filter(Region %in% selected_regions) |> 
+  gg_subseries(Dollars) +
+  ggtitle("Subseries: Monthly Merchandise Imports of Selected Countries (2015 - 2024)")
+```
+February appears to be the month with the lowest imports, with China showing the most noticeable dip, possibly due to the Chinese New Year, followed by the United States. However, overall, the mean import values seem relatively stable, indicating no significant differences in the average across the months. Regarding the trend, imports generally show an upward trajectory, though there was a noticeable dip in 2020 across most regions, likely due to the impact of the pandemic.
+
+### Domestic Exports
+```{r}
+#| code-fold: true
+#| code-summary: "seasonality subseries"
+
+merch_trade_region_long |> 
+  filter(`Trade Type` == "Domestic Export" & year(Date) > 2014) |>
+  as_tsibble(key = Region, index = Date) |>
+  filter(Region %in% selected_regions) |> 
+  gg_subseries(Dollars) +
+  ggtitle("Subseries: Monthly Merchandise Domestic Exports of Selected Countries (2015 - 2024)")
+```
+For domestic exports, the trends are less clear, though there are occasional spikes throughout the period.
+
+### Re-Exports
+```{r}
+#| code-fold: true
+#| code-summary: "seasonality subseries"
+
+merch_trade_region_long |> 
+  filter(`Trade Type` == "Re-Export" & year(Date) > 2014) |>
+  as_tsibble(key = Region, index = Date) |>
+  filter(Region %in% selected_regions) |> 
+  gg_subseries(Dollars) +
+  ggtitle("Subseries: Monthly Merchandise Re-Exports of Selected Countries (2015 - 2024)")
+```
+Overall, re-exports remain stable, with a noticeable upward trend in the US for Singapore’s re-exports. In Australia, March and December appear to have the highest re-export levels. 
+:::
+
+## 4.3 Scatterplots
+
+::: {.panel-tabset}
+
+### Imports
+
+```{r}
+#| code-fold: true
+#| code-summary: "scatter pairplots"
+
+merch_trade_region_long %>%
+  filter(`Trade Type` == "Import" & Region %in% selected_regions & year(Date) > 2009) %>%
+  select(-Continent, -`Trade Type`) %>%
+  pivot_wider(values_from = Dollars, names_from = Region) %>%
+  GGally::ggpairs(2:9)
+```
+
+### Domestic Exports
+
+```{r}
+#| code-fold: true
+#| code-summary: "scatter pairplots"
+
+merch_trade_region_long %>%
+  filter(`Trade Type` == "Domestic Export" & Region %in% selected_regions & year(Date) > 2009) %>%
+  select(-Continent, -`Trade Type`) %>%
+  pivot_wider(values_from = Dollars, names_from = Region) %>%
+  GGally::ggpairs(2:9)
+```
+
+### Re-Exports
+
+```{r}
+#| code-fold: true
+#| code-summary: "scatter pairplots"
+
+merch_trade_region_long %>%
+  filter(`Trade Type` == "Re-Export" & Region %in% selected_regions & year(Date) > 2009) %>%
+  select(-Continent, -`Trade Type`) %>%
+  pivot_wider(values_from = Dollars, names_from = Region) %>%
+  GGally::ggpairs(2:9)
+```
+
+:::
+
+## 4.4 Lag plots
+```{r}
+#| code-fold: true
+#| code-summary: "lagplots"
+
+merch_trade_region_long %>%
+  filter(`Trade Type` == "Import" & Region == "China" & year(Date) > 2009) %>%
+  as_tsibble(key = Region, index = Date) %>%
+  gg_lag(Dollars, geom = "point") +
+  labs(x = "lag(Dollars, k)")
+```
+## 4.5 STL Decomposition
+
+```{r}
+#| code-fold: true
+#| code-summary: "combine exports"
+
+merch_trade_exports_comb <- merch_trade_region_long %>%
+  filter((`Trade Type` == "Domestic Export" | `Trade Type` == "Re Export") & year(Date) > 2009) %>%
+  group_by(Region, Date) %>%
+  summarize(Dollars = sum(Dollars)) %>%
+  ungroup() %>%
+  as_tsibble(key = Region, index = Date)
+```
+
+::: {.panel-tabset}
+
+### China
+```{r}
+#| code-fold: true
+#| code-summary: "STL plots"
+
+merch_trade_exports_comb %>%
+  filter(Region == "China") %>%
+  as_tsibble(key = Region, index = Date) %>%
+  model(
+    STL(Dollars ~ trend(window = 11) +
+                   season(window = "periodic"),
+    robust = TRUE)) |>
+  components() |>
+  autoplot()
+```
+
+### US
+```{r}
+#| code-fold: true
+#| code-summary: "STL plots"
+
+merch_trade_exports_comb %>%
+  filter(Region == "United States") %>%
+  as_tsibble(key = Region, index = Date) %>%
+  model(
+    STL(Dollars ~ trend(window = 11) +
+                   season(window = "periodic"),
+    robust = TRUE)) |>
+  components() |>
+  autoplot()
+```
+
+### Taiwan
+```{r}
+#| code-fold: true
+#| code-summary: "STL plots"
+
+merch_trade_exports_comb %>%
+  filter(Region == "Taiwan") %>%
+  as_tsibble(key = Region, index = Date) %>%
+  model(
+    STL(Dollars ~ trend(window = 11) +
+                   season(window = "periodic"),
+    robust = TRUE)) |>
+  components() |>
+  autoplot()
+```
+
+### Germany
+```{r}
+#| code-fold: true
+#| code-summary: "STL plots"
+
+merch_trade_exports_comb %>%
+  filter(Region == "Germany") %>%
+  as_tsibble(key = Region, index = Date) %>%
+  model(
+    STL(Dollars ~ trend(window = 11) +
+                   season(window = "periodic"),
+    robust = TRUE)) |>
+  components() |>
+  autoplot()
+```
+
+### Australia
+```{r}
+#| code-fold: true
+#| code-summary: "STL plots"
+
+merch_trade_exports_comb %>%
+  filter(Region == "Australia") %>%
+  as_tsibble(key = Region, index = Date) %>%
+  model(
+    STL(Dollars ~ trend(window = 11) +
+                   season(window = "periodic"),
+    robust = TRUE)) |>
+  components() |>
+  autoplot()
+```
+
+### Malaysia
+```{r}
+#| code-fold: true
+#| code-summary: "STL plots"
+
+merch_trade_exports_comb %>%
+  filter(Region == "Malaysia") %>%
+  as_tsibble(key = Region, index = Date) %>%
+  model(
+    STL(Dollars ~ trend(window = 11) +
+                   season(window = "periodic"),
+    robust = TRUE)) |>
+  components() |>
+  autoplot()
+```
+:::
+
+I’ve combined both domestic exports and re-exports to assess how external trade restrictions, like the Trump tariffs, might affect Singapore’s trade. Since these restrictions are expected to have a larger impact on exports, looking at both gives a clearer understanding of their potential effect on overall trade dynamics.
+
+From the STL plots, we can see that:
+
+- Exports to the US and China from Singapore show an increasing trend.
+- Exports to Germany exhibit a decreasing trend.
+- Exports to the rest of the countries remain relatively stable. There seem to be an up and down trend due to the global economic conditions, but it has mostly gone back up. 
+- Seasonality-wise, most dips are observed in February (as corroborated by the seasonality plots), with the exception of Australia, where the dip spans from December to February.
+
+## 4.6 Conclusion
+
+While there is some seasonality, especially with February showing consistent dips, the overall import and export trend appears positive, with growth in key markets like the US and China. This suggests that, despite some seasonal variations, Singapore’s export situation remains favorable. The observed patterns, including the dips and stable trends, provide valuable insight into how external factors, such as trade restrictions, may influence Singapore’s trade flow. However, the first round of tariffs does not seem to have had a noticeable impact on trade flows. In conclusion, Singapore’s merchandise trade situation appears to be overall positive, with steady growth and stability.
 
 # 5 References
 

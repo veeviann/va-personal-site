@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://veeviann-isss608.netlify.app/practice/05-forecasters-toolbox.html</loc>
-    <lastmod>2025-03-09T02:24:45.848Z</lastmod>
-  </url>
-  <url>
-    <loc>https://veeviann-isss608.netlify.app/practice/04-time-series-features.html</loc>
-    <lastmod>2025-03-09T02:24:45.776Z</lastmod>
-  </url>
-  <url>
     <loc>https://veeviann-isss608.netlify.app/hands-on/week02.html</loc>
     <lastmod>2025-02-25T09:45:00.685Z</lastmod>
   </url>
@@ -26,7 +18,7 @@
   </url>
   <url>
     <loc>https://veeviann-isss608.netlify.app/take-home/exercise02.html</loc>
-    <lastmod>2025-03-09T15:29:22.826Z</lastmod>
+    <lastmod>2025-03-09T19:35:25.432Z</lastmod>
   </url>
   <url>
     <loc>https://veeviann-isss608.netlify.app/in-class/exercise05.html</loc>
@@ -59,13 +51,5 @@
   <url>
     <loc>https://veeviann-isss608.netlify.app/hands-on/week03.html</loc>
     <lastmod>2025-02-25T09:45:00.686Z</lastmod>
-  </url>
-  <url>
-    <loc>https://veeviann-isss608.netlify.app/practice/02-time-series-graphics.html</loc>
-    <lastmod>2025-03-09T02:24:45.592Z</lastmod>
-  </url>
-  <url>
-    <loc>https://veeviann-isss608.netlify.app/practice/03-time-series-decomposition.html</loc>
-    <lastmod>2025-03-09T02:24:45.675Z</lastmod>
   </url>
 </urlset>
