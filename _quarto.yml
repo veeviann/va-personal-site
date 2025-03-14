@@ -40,6 +40,8 @@ website:
         text: Week 05
       - href: hands-on/week07.qmd
         text: Week 07
+      - href: hands-on/week09.qmd
+        text: Week 08
 
   - id: take-home
     title: "Take-home Exercises"

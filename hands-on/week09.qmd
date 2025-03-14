@@ -1,0 +1,434 @@
+---
+title: "Week 08 - Visualising and Analysing Geospatial Data"
+format: html
+author: Vivian Chew
+sidebar: false
+date: 03/13/2025 #mm/dd/yyyy
+date-format: long
+date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+---
+
+# 1 Introduction & Data Preparation
+
+## 1.1 Loading the packages
+
+```{r}
+#| code-fold: true
+#| code-summary: "Loading packages"
+
+pacman::p_load(knitr,
+               sf,
+               tidyverse,
+               tmap)
+```
+
+## 1.2 Data Preparation 
+
+### 1.2.1 MP14 + Pop Data
+```{r}
+#| code-fold: true
+#| code-summary: "Load shp data"
+
+mpsz <- st_read("../data/geospatial/MP14_SUBZONE_WEB_PL.shp",
+                stringsAsFactors = FALSE, 
+                quiet = TRUE)
+```
+
+To answer the question on why only the first ten records will be displayed, use `sf:::print.sf` to check the function definition. where you will see `function (x, ..., n = getOption("sf_max_print", default = 10))`
+
+```{r}
+#| code-fold: true
+#| code-summary: "Preprocess pop data"
+
+popdata <- read_csv('../data/aspatial/17560-0.csv')
+popdata2020 <- popdata %>%
+  separate(`Planning Area/Subzone of Residence`, into = c("GENDER", "AGE"), sep = " -> ") %>%
+  filter(GENDER == "Total") %>%
+  mutate(across(3:ncol(popdata)+1, ~ as.numeric(as.character(.)))) %>%
+  pivot_longer(cols = 3:ncol(popdata)+1, names_to = "PA/SZ", values_to = "POP") %>%
+  select(GENDER, AGE, `PA/SZ`, POP) %>%
+  separate(`PA/SZ`, into = c("PA", "SZ"), sep = " -> ") %>%
+  mutate(PA = sub(" - Total$", "", PA)) %>%
+  filter(SZ != "None" & AGE != "Total") %>%
+  mutate(Category = case_when(
+    AGE %in% c("0 - 4", "5 - 9", "10 - 14", "15 - 19", "20 - 24") ~ "YOUNG",
+    AGE %in% c("25 - 29", "30 - 34", "35 - 39", "40 - 44", "45 - 49",
+                     "50 - 54", "55 - 59", "60 - 64") ~ "ECONOMY ACTIVE",
+    AGE %in% c("65 - 69", "70 - 74", "75 - 79", "80 - 84", "85 - 89", "90 & Over") ~ "AGED"
+  )) %>%
+  group_by(Category, PA, SZ) %>%
+  summarize(POP = sum(POP), .groups = "drop") %>%
+  pivot_wider(names_from = Category, values_from = POP, values_fill = list(POP = 0)) %>%
+  rowwise() %>%
+  mutate(
+    YOUNG = replace_na(YOUNG, 0),
+    AGED = replace_na(AGED, 0)
+  ) %>%
+  mutate(
+    TOTAL = sum(c_across(c(YOUNG, `ECONOMY ACTIVE`, AGED)), na.rm = TRUE),
+    DEPENDENCY = (YOUNG + AGED) / `ECONOMY ACTIVE`
+  ) %>%
+  ungroup() %>%
+  # Convert to caps to align with mpsz
+  mutate_at(.vars = vars(PA, SZ), 
+          .funs = funs(toupper)) %>%
+  filter(`ECONOMY ACTIVE` > 0)
+
+kable(head(popdata2020))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Join pop data with mpsz data"
+
+mpsz_pop2020 <- left_join(mpsz, popdata2020,
+                          by = c("SUBZONE_N" = "SZ"))
+write_rds(mpsz_pop2020, "../data/rds/mpszpop2020.rds")  # Save
+
+kable(head(mpsz_pop2020))
+```
+
+### 1.2.2 SGPools
+
+```{r}
+#| code-fold: true
+#| code-summary: "Load sgpools data"
+
+sgpools <- read_csv("../data/aspatial/SGPools_svy21.csv")
+kable(head(sgpools))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Convert to sf data"
+
+sgpools_sf <- st_as_sf(sgpools, 
+                       coords = c("XCOORD", "YCOORD"),
+                       crs = 3414)  # Singpoare coordinate system
+kable(head(sgpools_sf))
+```
+
+### 1.2.3 NGA Data
+
+```{r}
+#| code-fold: true
+#| code-summary: "Load rds data"
+
+NGA_wp <- read_rds("../data/rds/NGA_wp.rds")
+kable(head(NGA_wp))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Process the data"
+
+NGA_wp <- NGA_wp %>%
+  mutate(pct_functional = wp_functional/total_wp) %>%
+  mutate(pct_nonfunctional = wp_nonfunctional/total_wp) %>% 
+  drop_na()
+```
+
+# 2 Chloropleth Mapping
+
+```{r}
+#| code-fold: true
+#| code-summary: "one-liner to plot a chloropleth"
+
+# Some missing SZ: Lim Chu Kang, Loyang West
+tmap_mode("plot") # view 
+qtm(mpsz_pop2020, fill = "DEPENDENCY")
+```
+## 2.1 Plotting Chloropleth With Various Classification Methods & Stylings
+The following section will be a ShinyApp to modify the classification methods, number of classes as well as the colour palette (limited to a 2-colour gradient palette).
+
+<iframe src="https://veeviann-isss608.shinyapps.io/handsonwk9-chloropleth/" width="800" height="500" style="border: none;"></iframe>
+
+## 2.2 Additional Map Styling
+
+```{r}
+#| code-fold: true
+#| code-summary: "Join pop data with mpsz data"
+
+tm_shape(mpsz_pop2020)+
+  tm_polygons(fill = "DEPENDENCY", 
+              fill.scale = tm_scale_intervals(
+              style = "kmeans",
+              n = 5,
+              values = "brewer.blues"),
+              fill.legend = tm_legend(
+              title = "Dependency Ratio")) +
+  tm_title("Distribution of Dependency Ratio by Planning Subzone") +
+  tm_layout(frame = TRUE) +
+  tm_borders(fill_alpha = 0.5) +
+  tm_compass(type = "8star", size = 2) +
+  tm_grid(alpha = 0.2) +
+  tm_credits("Source: Planning Sub-zone boundary from Urban Redevelopment Authorithy (URA)\n and Population data from Department of Statistics DOS", 
+             position = c("left", "bottom")) +
+  tm_style("white")
+```
+
+## 2.3 Facet Maps
+
+### 2.3.1 Assigning multiple values
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+tm_shape(mpsz_pop2020)+
+  tm_fill(c("YOUNG", "AGED"),
+          style = "equal", 
+          palette = "YlGn") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(legend.outside = TRUE) +
+  tmap_style("white")
+```
+
+### 2.3.2 Using `tm_facets()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+tm_shape(mpsz_pop2020) +
+  tm_fill("DEPENDENCY",
+          style = "quantile",
+          palette = "scico.bam",
+          thres.poly = 0) + 
+  tm_facets(by="REGION_N", 
+            free.coords=TRUE) +
+  tm_layout(legend.show = FALSE,
+            title.position = c("center", "center"), 
+            title.size = 20) +
+  tm_borders(alpha = 0.5)
+```
+
+### 2.3.3 Combining individual chloropleth with `tmap_arrange()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+youngmap <- tm_shape(mpsz_pop2020) + 
+  tm_polygons("YOUNG", 
+              style = "quantile", 
+              palette = "YlGn")
+
+agedmap <- tm_shape(mpsz_pop2020) + 
+  tm_polygons("AGED", 
+              style = "quantile", 
+              palette = "YlGn")
+
+tmap_arrange(youngmap, agedmap, asp = 1, ncol = 2)
+```
+
+# 3 Visualising Geospatial Point Data
+
+## 3.1 Proportional Symbol Map
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+tmap_mode("view")  # Interactivity
+tm_shape(sgpools_sf)+
+tm_bubbles(col = "OUTLET TYPE",
+           size = "Gp1Gp2 Winnings",  # Proportional
+           border.col = "black",
+           border.lwd = 1)
+```
+
+## 3.2 Proportional Symbol Map - Facet
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+tm_shape(sgpools_sf) +
+  tm_bubbles(col = "OUTLET TYPE", 
+          size = "Gp1Gp2 Winnings",
+          border.col = "black",
+          border.lwd = 1) +
+  tm_facets(by = "OUTLET TYPE",
+            nrow = 1,
+            sync = TRUE)  # Synchronizes the zoom and map extents
+```
+
+```{r}
+tmap_mode("plot")
+```
+
+# 4 Analytical Mapping
+
+## 4.1 Basic Mapping
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+p1 <- tm_shape(NGA_wp) +
+  tm_polygons("wp_functional",
+          n = 10,
+          style = "equal",
+          palette = "brewer.blues") +
+  tm_layout(main.title = "Distribution of functional water point by LGAs",
+            legend.outside = FALSE)
+
+p2 <- tm_shape(NGA_wp) +
+  tm_polygons("total_wp",
+          n = 10,
+          style = "equal",
+          palette = "brewer.blues") +
+  tm_layout(main.title = "Distribution of total water point by LGAs",
+            legend.outside = FALSE)
+
+tmap_arrange(p2, p1, nrow = 1)
+```
+
+
+## 4.2 Rate Map
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+tm_shape(NGA_wp) +
+  tm_polygons("pct_functional",
+          n = 10,
+          style = "equal",
+          palette = "brewer.blues") +
+  tm_layout(main.title = "Rate map of functional water point by LGAs",
+            legend.outside = TRUE)
+```
+
+## 4.3 Extreme Value Maps
+
+### 4.3.1 Percentile Map
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+tm_shape(NGA_wp) +
+  tm_polygons("pct_functional",
+          n = 10,
+          style = "equal",
+          palette = "brewer.blues") +
+  tm_layout(main.title = "Rate map of functional water point by LGAs",
+            legend.outside = TRUE)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Defining function to convert values to percentile & plot"
+
+# Extract values from the col with variable name
+get.var <- function(vname, df) {
+  v <- df[vname] %>% 
+    st_set_geometry(NULL)
+  v <- unname(v[,1])
+  return(v)
+}
+
+percentmap <- function(vnam, df, 
+                       legtitle = NA, 
+                       mtitle = "Percentile Map",
+                       percentile_range = c(0,.01,.1,.5,.9,.99,1),
+                       labels = c("< 1%", "1% - 10%", "10% - 50%", "50% - 90%", "90% - 99%", "> 99%") ){
+  var <- get.var(vnam, df)
+  bperc <- quantile(var, percentile_range)
+  tm_shape(df) +
+  tm_polygons() +
+  tm_shape(df) +
+     tm_fill(vnam,
+             title = legtitle,
+             breaks = bperc,
+             palette = "Blues",
+          labels = labels)  +
+  tm_borders() +
+  tm_layout(main.title = mtitle)
+}
+```
+
+```{r}
+percentmap("total_wp", NGA_wp)
+```
+
+### 4.3.2 Box Map
+A box map is an enhanced quartile map that includes extra lower and upper categories. If lower outliers exist, the breaks start at the minimum value and then the lower fence. If there are no lower outliers, the breaks start at the lower fence, followed by the minimum value, with no observations in between.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Defining function to get break points"
+
+# vector, multiplier for IQR
+boxbreaks <- function(v, mult=1.5) {
+  qv <- unname(quantile(v))
+  iqr <- qv[4] - qv[2]
+  upfence <- qv[4] + mult * iqr
+  lofence <- qv[2] - mult * iqr
+  # initialize break points vector
+  bb <- vector(mode="numeric",length=7)
+
+  if (lofence < qv[1]) {  # no lower outliers
+    bb[1] <- lofence
+    bb[2] <- floor(qv[1])
+  } else {
+    bb[2] <- lofence
+    bb[1] <- qv[1]
+  }
+  if (upfence > qv[5]) { # no upper outliers
+    bb[7] <- upfence
+    bb[6] <- ceiling(qv[5])
+  } else {
+    bb[6] <- upfence
+    bb[7] <- qv[5]
+  }
+  
+  bb[3:5] <- qv[2:4]
+  return(bb)
+}
+
+# Test the output
+var <- get.var("wp_nonfunctional", NGA_wp) 
+boxbreaks(var)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Defining function to plot box map"
+
+boxmap <- function(vnam, df, 
+                   legend_title = NA,
+                   mtitle = "Box Map",
+                   mult = 1.5){
+  var <- get.var(vnam,df)
+  bb <- boxbreaks(var)
+  tm_shape(df) +
+    tm_polygons() +
+  tm_shape(df) +
+     tm_fill(vnam, title = legend_title,
+             breaks = bb,
+             palette = "brewer.blues",
+          labels = c("lower outlier", 
+                     "< 25%", 
+                     "25% - 50%", 
+                     "50% - 75%",
+                     "> 75%", 
+                     "upper outlier"))  +
+  tm_borders() +
+  tm_layout(main.title = mtitle, 
+            main.title.position = c("left","top"))
+}
+```
+
+```{r}
+tmap_mode("plot")
+boxmap("wp_nonfunctional", NGA_wp)
+```
+
+# 5 References
+
+1. https://r4va.netlify.app/chap21
+2. https://r4va.netlify.app/chap22
+3. https://r4va.netlify.app/chap23 
+4. https://r-tmap.github.io/tmap/
+5. https://github.com/cols4all/cols4all-R
+

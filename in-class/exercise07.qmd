@@ -1,0 +1,189 @@
+---
+title: "Week 07 - Visualising and Analysing Time-oriented Data"
+format: html
+author: Vivian Chew
+sidebar: false
+date: 03/01/2025 #mm/dd/yyyy
+date-format: long
+date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+---
+
+# 1 Package Installation & Data Preparation
+```{r}
+#| code-fold: true
+#| code-summary: "Loading packages"
+
+pacman::p_load(tidyverse,
+               tsibble,
+               feasts,
+               fable,
+               seasonal,
+               knitr)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Load and process data"
+
+ts_data <- read_csv('data/visitor_arrivals_by_air.csv')
+# Convert to date field
+ts_data$`Month-Year` <- dmy(ts_data$`Month-Year`)
+# Convert from tibble to TS data type
+ts_data_ts <- ts(ts_data)
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Convert datatype"
+
+# Convert to tbl_ts for compatibility with tidyverts
+ts_tsibble <- ts_data %>%
+  mutate(Month = yearmonth(`Month-Year`)) %>%
+  as_tsibble(index = `Month`)
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Transform the data"
+
+# This is pd.melt
+ts_longer <- ts_data %>%
+  pivot_longer(cols = c(2:34),
+               names_to = "Country",  # Columns
+               values_to = "Arrivals")
+```
+
+# 2 Plotting Basic Time Series Plot
+```{r}
+ts_longer %>%
+  filter(Country == "Vietnam") %>%
+  ggplot(aes(x = `Month-Year`, 
+             y = Arrivals))+
+  geom_line(size = 0.5)
+```
+
+```{r}
+#| fig-height: 10
+
+ggplot(data = ts_longer, 
+       aes(x = `Month-Year`, 
+           y = Arrivals))+
+  geom_line(size = 0.5) +
+  facet_wrap(~ Country,
+             ncol = 3,
+             scales = "free_y") + # Not fixed y axis, because by default it is fixed
+  theme_bw()
+```
+
+# 3 Time-Series Analysis
+## 3.1 Seasonality
+
+```{r}
+#| code-fold: true
+#| code-summary: "Extend the tsibble"
+
+# Convert to tbl_ts for compatibility with tidyverts
+tsibble_longer <- ts_tsibble %>%
+  pivot_longer(cols = c(2:34),
+               names_to = "Country",  # Columns
+               values_to = "Arrivals")
+```
+
+```{r}
+#| fig-width: 10
+tsibble_longer %>%
+  filter(Country == "Vietnam" | Country == "Italy") %>%
+  gg_subseries(Arrivals) +
+  theme_bw()
+```
+- Can see that the Italians only come in the month of August.
+
+## 3.2 ACF and PACF Decomposition 
+```{r}
+acf_vals <- tsibble_longer %>%
+  filter(`Country` == "Vietnam" |
+         `Country` == "Italy" |
+         `Country` == "United Kingdom" |
+         `Country` == "China") %>%
+  ACF(Arrivals)
+
+acf_vals %>% autoplot()
+```
+
+- The blue line is the 95% confidence interval. Anything within the blue line -> correlation is not statistically significant.
+
+```{r}
+tsibble_longer %>%
+  filter(`Country` == "Vietnam" |
+         `Country` == "Italy" |
+         `Country` == "United Kingdom" |
+         `Country` == "China") %>%
+  PACF(Arrivals) %>%
+  autoplot()
+```
+
+- ACF plots show the correlation between data points at different lags, while PACF plots show the partial correlation between data points at different lags.
+
+## 3.3 STL Decomposition
+
+```{r}
+tsibble_longer %>%
+  filter(`Country` == "Vietnam") %>%
+  model(stl = STL(Arrivals)) %>%
+  components() %>%
+  autoplot()
+```
+
+# 4 Visual Forecasting
+## 4.1 Data Split
+```{r}
+# Train test split
+vietnam_ts <- tsibble_longer %>%
+  filter(Country == "Vietnam") %>% 
+  mutate(Type = if_else(
+    `Month-Year` >= "2019-01-01", 
+    "Hold-out", "Training"))
+
+vietnam_train <- vietnam_ts %>%
+  filter(Type == "Training")
+
+vietnam_test <- vietnam_ts %>%
+  filter(Type == "Hold-out")
+```
+
+## 4.2 EDA
+
+```{r}
+vietnam_train %>%
+  model(stl = STL(Arrivals)) %>%
+  components() %>%
+  autoplot()
+```
+
+## 4.3 Model fitting
+```{r}
+ETS(y ~ error(c("A", "M")) 
+    + trend(c("N", "A", "Ad")) 
+    + season(c("N", "A", "M")))
+
+fit_ses <- vietnam_train %>%
+  model(ETS(Arrivals ~ error("A") 
+            + trend("N") 
+            + season("N")))
+fit_ses
+```
+
+## 4.4 Examine model assumptions
+```{r}
+gg_tsresiduals(fit_ses)
+```
+```{r}
+fit_ses %>%
+  report()
+```
+
