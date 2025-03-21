@@ -1,0 +1,309 @@
+---
+title: "Week 09 - Modelling, Visualising and Analysing Network Data"
+format: html
+author: Vivian Chew
+sidebar: false
+date: 03/20/2025 #mm/dd/yyyy
+date-format: long
+date-modified: last-modified
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: true
+---
+
+# 1 Introduction & Data Preparation
+
+## 1.1 Loading the packages
+
+```{r}
+#| code-fold: true
+#| code-summary: "Loading packages"
+
+pacman::p_load(
+  ggforce,
+  ggraph,
+  igraph,
+  knitr,
+  lubridate,
+  tidygraph,
+  tidyverse,
+  visNetwork,
+  fontawesome
+)
+```
+
+## 1.2 Loading in the data
+
+```{r}
+#| code-fold: true
+#| code-summary: "node data"
+
+gt_node <- read_csv('../data/GAStech_email_node.csv')
+kable(head(gt_node, 10))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "edge data"
+
+gt_edge <- read_csv('../data/GAStech_email_edge-v2.csv')
+kable(head(gt_edge, 10))
+```
+
+## 1.3 Data Manipulation
+
+1.  First we want to aggregate the edges by date, senders, receivers and day of the week.
+
+```{r}
+#| code-fold: true
+#| code-summary: "aggregate data"
+
+gt_edge_agg <- gt_edge %>%
+  mutate(SendDate = dmy(SentDate),
+         Weekday = wday(SentDate,
+                        label = TRUE,
+                        abbr = FALSE)) %>%
+  group_by(sourceLabel, targetLabel, MainSubject, Weekday) %>%
+    summarise(Weight = n(),) %>%
+  filter(sourceLabel != targetLabel) %>%
+  filter(Weight > 1) %>%
+  ungroup()
+
+glimpse(gt_edge_agg)
+```
+
+2.  Next, we will convert to a graph object using `tidygraph` package. Note: The `tbl_graph()` class is a thin wrapper around an igraph object that provides methods for manipulating the graph using the tidy API.
+
+```{r}
+#| code-fold: true
+#| code-summary: "tbl_graph"
+
+gt_graph <- tbl_graph(nodes = gt_node %>% select(2:ncol(gt_node)),
+                           edges = gt_edge_agg,
+                           directed = TRUE)
+```
+
+We will also create an igraph object directly.
+
+```{r}
+#| code-fold: true
+#| code-summary: "igraph"
+
+gt_graph2 <- igraph::graph_from_data_frame(gt_edge_agg, 
+                                           vertices = gt_node %>% select(2:ncol(gt_node)))
+gt_graph2
+```
+
+## 1.4 Network metrics
+
+Using the igraph package, we can compute some measures like centrality, betweeness and closeness of the nodes in a graph.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Computing network metrics"
+
+# Degree centrality refers to how many links are attached to a node. It is particularly useful for identifying nodes that are particularly central or important to a network. 
+gt_graph$degree <- igraph::degree(gt_graph)
+
+# The more often a node acts as a “bridge” between two other nodes’ geodesic (shortest) path, the higher its betweenness centrality in the network.
+gt_graph$between <- igraph::betweenness(gt_graph)
+
+# It is measured based on the average geodesic path between that node and all the other nodes. A node that is “more close” to other nodes (i.e., fewer shortest paths) is therefore considered more central.
+gt_graph$closeness <- igraph::closeness(gt_graph)
+
+vertex_data <- data.frame(
+  label = V(gt_graph)$label,
+  degree = gt_graph$degree,
+  between = gt_graph$between,
+  closeness = gt_graph$closeness
+)
+
+kable(head(vertex_data, 10))
+```
+
+Using the igraph object, we can also find the neighbours of the node of interest.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Finding neighbours"
+
+neighbors(gt_graph2, "Stenig.Fusil", "in")
+```
+
+# 2. Static Network Graphs
+
+## 2.1 Single Static Network Graph
+
+The plots include:
+
+-   The thickness of the edges are determined by the weight (strength of connection). Edges are directional
+-   Coloured by Department
+-   Grouped using community detection algorithms
+-   Size by centrality measures
+
+::: panel-tabset
+### Using `igraph()`
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+set.seed(123)
+
+# Select different layout types
+# gt_graph_kk <- layout_with_kk(gt_graph2) 
+# gt_graph_fr <- layout_with_fr(gt_graph2)
+# gt_graph_dh <- layout_with_dh(gt_graph2)
+gt_graph_nice <- layout_nicely(gt_graph2)
+
+# Community detection
+clw <- cluster_walktrap(gt_graph2)
+clp <- cluster_label_prop(gt_graph2)
+
+gt_graph2$between <- igraph::betweenness(gt_graph2)
+
+plot(clw, gt_graph2,
+     layout=gt_graph_nice,
+     vertex.label=NA, 
+     vertex.size=gt_graph2$between/10,
+     edge.width=E(gt_graph2)$Weight/11,
+     edge.arrow.size=E(gt_graph2)$Weight/11)
+```
+
+### Using `ggraph()`
+
+In this example we filtered out the work related emails only, which will be similar to the example in the tutorial.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| fig-height: 7
+#| fig-width: 9
+
+g <- gt_graph %>%
+  activate(edges) %>%
+  filter(MainSubject == "Work related") %>%
+  activate(nodes) %>%
+  mutate(community = as.factor(group_optimal(weights = Weight)),
+         betweenness_measure = centrality_betweenness()) %>%
+  ggraph(layout = "fr") +
+  geom_mark_hull(
+    aes(x, y, group = community, fill = community),  
+    alpha = 0.2,  
+    expand = unit(0.3, "cm"),  # Expand
+    radius = unit(0.3, "cm")  # Smoothness
+  ) + 
+  geom_edge_link(aes(width=Weight), 
+                 arrow = arrow(length = unit(0.3, "cm")),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(fill = Department,
+                      size = betweenness_measure),
+                      color = "black",
+                      shape = 21)
+  
+g + theme_graph()
+```
+:::
+
+## 2.2 Multiple Static Network Graph
+
+### 2.2.1 Using `facet_edges()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| fig-width: 8
+
+set_graph_style() 
+
+g <- ggraph(gt_graph, 
+            layout = "nicely") + 
+  geom_edge_link(aes(width = Weight), 
+                 alpha = 0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = Department), 
+                  size = 2)
+  
+g + facet_edges(~MainSubject) +
+  th_foreground(foreground = "grey80",  
+                border = TRUE) +
+  theme(legend.position = 'bottom')
+```
+
+lol the admin dept has a lot of non work related emails..
+
+### 2.2.2 Using `facet_nodes()`
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+#| fig-width: 8
+
+set_graph_style() 
+
+g <- gt_graph %>%
+  activate(edges) %>%
+  filter(MainSubject == "Work related") %>%
+  activate(nodes) %>%
+  ggraph(layout = "nicely") + 
+  geom_edge_link(aes(width = Weight), 
+                 alpha = 0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = Department), 
+                  size = 2)
+  
+g + facet_nodes(~Department) +
+  th_foreground(foreground = "grey80",  
+                border = TRUE) +
+  theme(legend.position = 'bottom')
+```
+
+# 3 Interactive Network Graph
+
+```{r}
+#| code-fold: true
+#| code-summary: "preprocess data"
+
+gt_edge_agg2 <- gt_edge %>%
+  left_join(gt_node, by = c("sourceLabel" = "label")) %>%
+  rename(from = id) %>%
+  left_join(gt_node, by = c("targetLabel" = "label")) %>%
+  rename(to = id) %>%
+  filter(MainSubject == "Work related") %>%
+  group_by(from, to) %>%
+    summarise(width = n()) %>%
+  filter(from != to) %>%
+  filter(width > 1) %>%
+  ungroup()
+
+gt_node2 <- gt_node %>%
+  rename(group = Department) %>%
+  mutate(shape = "dot",
+         title = label) 
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Plot"
+
+# need to use addFontAwesome() to include icon
+visNetwork(gt_node2, gt_edge_agg2,
+           main = "Network Graph", 
+           submain = list(text = "Email Flows Among Gastech Employees")) %>%
+  # visNodes(icon = list(code = "f007", size = 75)) %>%
+  visIgraphLayout(layout = "layout_nicely") %>%
+  visEdges(arrows = "to", smooth = FALSE, shadow = TRUE) %>%
+  visOptions(highlightNearest = TRUE,
+             nodesIdSelection = TRUE,
+             selectedBy = "group") %>%
+  visLegend(position = "right", main = "Department") %>%
+  visLayout(randomSeed = 123)
+```
+
+# 4 Reference
+
+1.  https://r4va.netlify.app/chap27
+2.  https://bookdown.org/josephine_lukito/j381m_tutorials/id_16-igraph.html
+3.  https://datastorm-open.github.io/visNetwork/
